@@ -26,6 +26,11 @@ type SettingsSectionSubmitMsg struct {
 	Settings docker.ApplicationSettings
 }
 
+type SettingsSectionApplyMsg struct {
+	Settings docker.ApplicationSettings
+	Pull     bool
+}
+
 type SettingsSectionCancelMsg struct{}
 
 var settingsKeys = struct {
@@ -95,6 +100,8 @@ func NewSettings(ns *docker.Namespace, app *docker.Application, sectionType Sett
 		section = NewSettingsFormUpdates(app, appState.LastUpdateResult())
 	case SettingsSectionBackups:
 		section = NewSettingsFormBackups(app, appState.LastBackupResult())
+	case SettingsSectionCatalog:
+		section = NewSettingsFormCatalog(app)
 	}
 
 	h := NewHelp()
@@ -165,6 +172,9 @@ func (m Settings) Update(msg tea.Msg) (Component, tea.Cmd) {
 
 	case SettingsSectionSubmitMsg:
 		return m.handleFormSubmit(msg)
+
+	case SettingsSectionApplyMsg:
+		return m.handleApply(msg)
 
 	case settingsRunActionMsg:
 		m.state = settingsStateRunningAction
@@ -249,21 +259,33 @@ func (m Settings) navigateToDashboard() tea.Cmd {
 }
 
 func (m Settings) handleFormSubmit(msg SettingsSectionSubmitMsg) (Component, tea.Cmd) {
-	if msg.Settings.Equal(m.app.Settings) {
+	return m.beginSettingsChange(msg.Settings, true, false)
+}
+
+func (m Settings) handleApply(msg SettingsSectionApplyMsg) (Component, tea.Cmd) {
+	return m.beginSettingsChange(msg.Settings, msg.Pull, true)
+}
+
+func (m Settings) beginSettingsChange(settings docker.ApplicationSettings, pull bool, applyOnly bool) (Component, tea.Cmd) {
+	if settings.Equal(m.app.Settings) {
 		return m, m.navigateToDashboard()
 	}
-	if err := msg.Settings.Validate(); err != nil {
+	if err := settings.Validate(); err != nil {
 		m.err = err
 		return m, nil
 	}
-	if m.namespace.HostInUseByAnother(msg.Settings.Host, m.app.Settings.Name) {
+	if m.namespace.HostInUseByAnother(settings.Host, m.app.Settings.Name) {
 		m.err = docker.ErrHostnameInUse
 		return m, nil
 	}
 	m.state = settingsStateDeploying
 	m.savedSettings = m.app.Settings
-	m.app.Settings = msg.Settings
+	m.app.Settings = settings
 	m.progress = NewProgress(m.width, Colors.Border)
+
+	if applyOnly {
+		return m, tea.Batch(m.progress.Init(), m.runApply(pull))
+	}
 	return m, tea.Batch(m.progress.Init(), m.runDeploy())
 }
 
@@ -298,6 +320,13 @@ func (m Settings) renderActionComplete() string {
 func (m Settings) runDeploy() tea.Cmd {
 	return func() tea.Msg {
 		err := m.app.Deploy(context.Background(), nil)
+		return settingsDeployFinishedMsg{err: err}
+	}
+}
+
+func (m Settings) runApply(pull bool) tea.Cmd {
+	return func() tea.Msg {
+		err := m.app.ApplySettings(context.Background(), m.app.Settings, pull, nil)
 		return settingsDeployFinishedMsg{err: err}
 	}
 }

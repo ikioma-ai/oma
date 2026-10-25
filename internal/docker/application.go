@@ -220,6 +220,13 @@ func (a *Application) Deploy(ctx context.Context, progress DeployProgressCallbac
 // it never pulls, so the app is not updated even if its image tag has moved.
 // On failure, the previous settings are restored.
 func (a *Application) UpdateSettings(ctx context.Context, settings ApplicationSettings, progress DeployProgressCallback) error {
+	return a.ApplySettings(ctx, settings, false, progress)
+}
+
+// ApplySettings redeploys the app with the given settings. It pulls only when
+// requested, so settings-only applies can avoid moving the image tag. On
+// failure, the previous settings are restored.
+func (a *Application) ApplySettings(ctx context.Context, settings ApplicationSettings, pull bool, progress DeployProgressCallback) error {
 	vol, err := a.Volume(ctx)
 	if err != nil {
 		return fmt.Errorf("getting volume: %w", err)
@@ -227,6 +234,13 @@ func (a *Application) UpdateSettings(ctx context.Context, settings ApplicationSe
 
 	oldSettings := a.Settings
 	a.Settings = settings
+
+	if pull {
+		if _, err := a.pullImage(ctx, progress); err != nil {
+			a.Settings = oldSettings
+			return err
+		}
+	}
 
 	if err := a.deployWithVolume(ctx, vol, progress); err != nil {
 		a.Settings = oldSettings

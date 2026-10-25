@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 1 complete; Phase 2 in progress (V1–V4 complete, V5 next)
+Status: Phase 1 and Phase 2 complete; Phase 3 next
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -554,7 +554,7 @@ Exit criteria:
 
 ### Phase 2: Catalog
 
-Status: V1–V4 complete; V5 (catalog apply) next.
+Status: complete. V1–V5 delivered.
 
 V1 delivered the manifest schema and validation, embedded built-in manifests, the local user catalog loader and merge, `oma catalog list/show/validate`, and the TUI app list backed by the merged catalog.
 
@@ -563,6 +563,8 @@ V2 delivered catalog-driven deployment: service port, health path/port/timeout, 
 V3 delivered the environment model: required/default/generated/secret values, an install-time environment form, secret masking in the TUI and settings screen, and persisted generated values. System-derived values remain supplied by the existing environment builder.
 
 V4 delivered installer resolution: embedded `/apps.json` and `/apps/{id}`, raw image routes, local `catalog add`, and user/embedded/alias/image resolution in the install path. The installer catalog is kept in sync with the embedded catalog by a root-module test.
+
+V5 delivered explicit catalog apply: field-level diff, CLI preview and confirmation, `--dry-run`/`--yes`, TUI settings preview, safe field subset, environment and secret preservation, optional image pull, and automatic settings restore on failure. A real Docker smoke applied health/resources/storage changes without pulling and restored settings after a failed image pull.
 
 1. Add `internal/catalog`.
 2. Add the manifest schema and validation, including `schemaVersion` and `kind: web`.

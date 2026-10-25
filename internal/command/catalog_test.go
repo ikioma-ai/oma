@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ikioma-ai/oma/internal/catalogapply"
 )
 
 func TestCatalogListShowsBuiltinEntries(t *testing.T) {
@@ -177,4 +181,49 @@ func writeSourceManifest(t *testing.T, content string) string {
 	path := filepath.Join(t.TempDir(), "manifest.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 	return path
+}
+
+func TestPrintCatalogChanges(t *testing.T) {
+	var out bytes.Buffer
+	printCatalogChanges(&out, []catalogapply.Change{
+		{Field: "Image", Old: "old:v1", New: "new:v2"},
+		{Field: "Health path", Old: "/up", New: "/healthz"},
+	})
+
+	assert.Contains(t, out.String(), "FIELD")
+	assert.Contains(t, out.String(), "Image")
+	assert.Contains(t, out.String(), "new:v2")
+	assert.Contains(t, out.String(), "Health path")
+}
+
+func TestConfirmCatalogApply(t *testing.T) {
+	tests := []struct {
+		answer string
+		want   bool
+	}{
+		{answer: "y\n", want: true},
+		{answer: "yes\n", want: true},
+		{answer: "n\n", want: false},
+		{answer: "\n", want: false},
+	}
+
+	for _, test := range tests {
+		cmd := &cobra.Command{}
+		cmd.SetIn(strings.NewReader(test.answer))
+		var out bytes.Buffer
+		cmd.SetOut(&out)
+
+		got, err := confirmCatalogApply(cmd)
+		require.NoError(t, err)
+		assert.Equal(t, test.want, got)
+		assert.Contains(t, out.String(), "Apply these changes?")
+	}
+}
+
+func TestRootRegistersCatalogApplyCommand(t *testing.T) {
+	root := NewRootCommand()
+
+	cmd, _, err := root.cmd.Find([]string{"catalog", "apply"})
+	require.NoError(t, err)
+	assert.Equal(t, "apply", cmd.Name())
 }

@@ -23,6 +23,7 @@ func newCatalogCommand() *catalogCommand {
 	}
 
 	c.cmd.AddCommand(newCatalogAddCommand().cmd)
+	c.cmd.AddCommand(newCatalogApplyCommand().cmd)
 	c.cmd.AddCommand(newCatalogListCommand().cmd)
 	c.cmd.AddCommand(newCatalogShowCommand().cmd)
 	c.cmd.AddCommand(newCatalogValidateCommand().cmd)
