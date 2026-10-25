@@ -3,6 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -479,4 +481,33 @@ func TestInstall_SelectionTracksCatalogID(t *testing.T) {
 	m := newTestInstall()
 	m, _ = updateInstall(m, InstallAppSelectedMsg{ImageRef: "ghcr.io/basecamp/once-campfire", CatalogID: "campfire"})
 	assert.Equal(t, "campfire", m.catalogID)
+}
+
+func TestInstall_TransitionsToEnvironmentForm(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+
+	appDir := filepath.Join(configDir, "oma", "apps")
+	require.NoError(t, os.MkdirAll(appDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(appDir, "envapp.yaml"), []byte(`schemaVersion: 1
+id: envapp
+name: Env App
+description: Requires configuration
+category: Tools
+image: example.com/envapp:v1
+env:
+  - name: DATABASE_URL
+    required: true
+`), 0o644))
+
+	m := NewInstall(newTestNamespace(), "envapp")
+	require.Equal(t, installStateHostname, m.state)
+	assert.Equal(t, "envapp", m.catalogID)
+
+	m, _ = updateInstall(m, InstallFormSubmitMsg{ImageRef: "example.com/envapp:v1", Hostname: "envapp.localhost"})
+	assert.Equal(t, installStateEnv, m.state)
+	assert.True(t, m.envForm.HasInputs())
+
+	m, _ = updateInstall(m, InstallEnvBackMsg{})
+	assert.Equal(t, installStateHostname, m.state)
 }

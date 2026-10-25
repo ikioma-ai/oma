@@ -28,6 +28,17 @@ var (
 	envNamePattern    = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 )
 
+var envFromSources = map[string]string{
+	"base_url":      "BASE_URL",
+	"disable_ssl":   "DISABLE_SSL",
+	"num_cpus":      "NUM_CPUS",
+	"smtp.server":   "SMTP_ADDRESS",
+	"smtp.port":     "SMTP_PORT",
+	"smtp.username": "SMTP_USERNAME",
+	"smtp.password": "SMTP_PASSWORD",
+	"smtp.from":     "MAILER_FROM_ADDRESS",
+}
+
 type Manifest struct {
 	SchemaVersion int       `yaml:"schemaVersion"`
 	Kind          string    `yaml:"kind"`
@@ -306,6 +317,14 @@ func (m Manifest) validateEnv() []error {
 		}
 		if env.Generate != "" && env.Generate != "hex32" {
 			errs = append(errs, fmt.Errorf("env %q has unsupported generator %q", env.Name, env.Generate))
+		}
+		if env.From != "" {
+			expectedName, ok := envFromSources[env.From]
+			if !ok {
+				errs = append(errs, fmt.Errorf("env %q has unsupported source %q", env.Name, env.From))
+			} else if env.Name != expectedName {
+				errs = append(errs, fmt.Errorf("env %q with source %q must be named %q", env.Name, env.From, expectedName))
+			}
 		}
 	}
 

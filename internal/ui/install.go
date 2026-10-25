@@ -29,6 +29,7 @@ const (
 	installStateAppList   installState = iota // Screen 1: choose app
 	installStateImageForm                     // Screen 2: enter image ref
 	installStateHostname                      // Screen 3: enter hostname
+	installStateEnv                           // Screen 4: enter environment
 	installStateActivity                      // Installing
 )
 
@@ -45,6 +46,7 @@ type Install struct {
 	appList        InstallAppList
 	imageForm      InstallImageForm
 	hostnameForm   InstallHostnameForm
+	envForm        InstallEnvForm
 	activity       *InstallActivity
 	popupHelp      *PopupHelp
 	starfield      *Starfield
@@ -54,6 +56,9 @@ type Install struct {
 	customImage    bool
 	customImageRef string
 	catalogID      string
+	imageRef       string
+	hostname       string
+	envValues      map[string]string
 	installFlag    string
 	registry       docker.RegistrySettings
 }
@@ -74,6 +79,7 @@ func NewInstall(ns *docker.Namespace, imageRef string) Install {
 			m.catalogID = entry.ID
 			imageRef = entry.Image
 		}
+		m.imageRef = imageRef
 		m.state = installStateHostname
 		m.hostnameForm = NewInstallHostnameForm(imageRef, m.installFlag)
 	} else {
@@ -174,6 +180,7 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 		m.hostnameForm = NewInstallHostnameForm(msg.ImageRef, "")
 		m.customImage = false
 		m.catalogID = msg.CatalogID
+		m.imageRef = msg.ImageRef
 		m.registry = docker.RegistrySettings{}
 		m.state = installStateHostname
 		return m, m.initScreenWithSize()
@@ -197,6 +204,7 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 		m.customImage = true
 		m.customImageRef = msg.ImageRef
 		m.catalogID = msg.CatalogID
+		m.imageRef = msg.ImageRef
 		m.registry = docker.RegistrySettings{}
 		if msg.RegistryUsername != "" || msg.RegistryPassword != "" {
 			host, _ := docker.RegistryHost(msg.ImageRef)
@@ -229,10 +237,25 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 			m.err = docker.ErrHostnameInUse
 			return m, nil
 		}
-		m.state = installStateActivity
-		m.activity = NewInstallActivity(m.namespace, msg.ImageRef, msg.Hostname, m.catalogID, m.registry)
-		m.activity.Update(tea.WindowSizeMsg{Width: m.width, Height: m.height})
-		return m, m.activity.Init()
+		m.imageRef = msg.ImageRef
+		m.hostname = msg.Hostname
+		m.envValues = nil
+
+		if entry, ok := findCatalogEntry(m.catalogID); ok && len(envInputs(entry.Env)) > 0 {
+			m.envForm = NewInstallEnvForm(entry.Env)
+			m.state = installStateEnv
+			return m, m.initScreenWithSize()
+		}
+
+		return m.startActivity()
+
+	case InstallEnvSubmitMsg:
+		m.envValues = msg.Values
+		return m.startActivity()
+
+	case InstallEnvBackMsg:
+		m.state = installStateHostname
+		return m, m.hostnameForm.Init()
 
 	case InstallActivityFailedMsg:
 		_ = m.namespace.Refresh(context.Background())
@@ -244,6 +267,8 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 				m.imageForm = NewInstallImageFormWithCredentials(m.customImageRef)
 				return m, m.initScreenWithSize()
 			}
+		} else if m.envForm.HasInputs() {
+			m.state = installStateEnv
 		} else {
 			m.state = installStateHostname
 		}
@@ -310,6 +335,8 @@ func (m Install) initCurrentScreen() tea.Cmd {
 		return m.imageForm.Init()
 	case installStateHostname:
 		return m.hostnameForm.Init()
+	case installStateEnv:
+		return m.envForm.Init()
 	}
 	return nil
 }
@@ -336,6 +363,10 @@ func (m *Install) updateCurrentScreen(msg tea.Msg) tea.Cmd {
 		var cmd tea.Cmd
 		m.hostnameForm, cmd = m.hostnameForm.Update(msg)
 		return cmd
+	case installStateEnv:
+		var cmd tea.Cmd
+		m.envForm, cmd = m.envForm.Update(msg)
+		return cmd
 	}
 	return nil
 }
@@ -348,6 +379,8 @@ func (m Install) viewCurrentScreen() string {
 		return m.imageForm.View()
 	case installStateHostname:
 		return m.hostnameForm.View()
+	case installStateEnv:
+		return m.envForm.View()
 	}
 	return ""
 }
@@ -369,8 +402,18 @@ func (m Install) handleBack() (Install, tea.Cmd) {
 		}
 		m.state = installStateAppList
 		return m, nil
+	case installStateEnv:
+		m.state = installStateHostname
+		return m, m.hostnameForm.Init()
 	}
 	return m, nil
+}
+
+func (m Install) startActivity() (Install, tea.Cmd) {
+	m.state = installStateActivity
+	m.activity = NewInstallActivity(m.namespace, m.imageRef, m.hostname, m.catalogID, m.envValues, m.registry)
+	m.activity.Update(tea.WindowSizeMsg{Width: m.width, Height: m.height})
+	return m, m.activity.Init()
 }
 
 func (m Install) imageErrorState() installState {
@@ -507,11 +550,20 @@ func (m Install) helpForState() (string, string) {
 	switch m.state {
 	case installStateHostname:
 		return "Setting the hostname", installHostnameHelpText
+	case installStateEnv:
+		return "Setting the environment", installEnvHelpText
 	}
 	return "", ""
 }
 
 const (
+	installEnvHelpText = `This application requires configuration before it can be installed.
+
+Required values are marked. Secret values are hidden as you type and are stored with the application settings.
+
+System values such as the base URL and SSL state are derived automatically.
+`
+
 	installHostnameHelpText = `On this screen should enter the hostname where you'll be running this application.
 
 If you're installing an application on the Internet, this should use a domain name that you own. You can use a subdomain so that one domain can support multiple applications.

@@ -31,11 +31,12 @@ func TestSettingsFromCatalogEntry(t *testing.T) {
 		Source: catalog.SourceUser,
 	}
 
-	settings := settingsFromCatalogEntry(docker.ApplicationSettings{
+	settings, err := settingsFromCatalogEntry(docker.ApplicationSettings{
 		Name:  "myapp",
 		Image: "example.com/myapp:v1",
 		Host:  "myapp.example.com",
-	}, entry)
+	}, entry, nil)
+	require.NoError(t, err)
 
 	assert.Equal(t, "myapp", settings.CatalogID)
 	assert.Equal(t, "user", settings.CatalogSource)
@@ -58,11 +59,62 @@ func TestApplicationSettingsUsesSelectedCatalogEntry(t *testing.T) {
 		catalogID: "campfire",
 	}
 
-	settings := activity.applicationSettings("campfire", "chat.example.com")
+	settings, err := activity.applicationSettings("campfire", "chat.example.com")
+	require.NoError(t, err)
 
 	assert.Equal(t, "campfire", settings.CatalogID)
 	assert.Equal(t, "builtin", settings.CatalogSource)
 	assert.Equal(t, docker.DefaultServicePort, settings.ServicePort)
 	assert.Equal(t, docker.HealthCheckPath, settings.HealthCheckPath)
 	assert.True(t, settings.VerifyEnabled())
+}
+
+func TestSettingsFromCatalogEntryEnvironment(t *testing.T) {
+	entry := catalog.Entry{
+		Manifest: catalog.Manifest{
+			ID: "envapp",
+			Env: []catalog.EnvVar{
+				{Name: "DATABASE_URL", Required: true, Secret: true},
+				{Name: "LOG_LEVEL", Default: "info"},
+				{Name: "APP_ENV", Value: "production"},
+				{Name: "SECRET_TOKEN", Generate: "hex32", Secret: true},
+				{Name: "BASE_URL", From: "base_url"},
+			},
+		},
+		Source: catalog.SourceUser,
+	}
+
+	settings, err := settingsFromCatalogEntry(docker.ApplicationSettings{
+		Name:  "envapp",
+		Image: "example.com/envapp:v1",
+		Host:  "envapp.example.com",
+	}, entry, map[string]string{
+		"DATABASE_URL": "postgres://localhost/envapp",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "postgres://localhost/envapp", settings.EnvVars["DATABASE_URL"])
+	assert.Equal(t, "info", settings.EnvVars["LOG_LEVEL"])
+	assert.Equal(t, "production", settings.EnvVars["APP_ENV"])
+	assert.Len(t, settings.EnvVars["SECRET_TOKEN"], 64)
+	assert.NotContains(t, settings.EnvVars, "BASE_URL")
+	assert.Equal(t, []string{"DATABASE_URL", "SECRET_TOKEN"}, settings.SecretEnv)
+
+	restored, err := docker.UnmarshalApplicationSettings(settings.Marshal())
+	require.NoError(t, err)
+	assert.Equal(t, settings.EnvVars["SECRET_TOKEN"], restored.EnvVars["SECRET_TOKEN"])
+	assert.Equal(t, settings.SecretEnv, restored.SecretEnv)
+}
+
+func TestSettingsFromCatalogEntryRequiresEnv(t *testing.T) {
+	entry := catalog.Entry{
+		Manifest: catalog.Manifest{
+			ID:  "envapp",
+			Env: []catalog.EnvVar{{Name: "DATABASE_URL", Required: true}},
+		},
+	}
+
+	_, err := settingsFromCatalogEntry(docker.ApplicationSettings{Name: "envapp"}, entry, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DATABASE_URL")
 }

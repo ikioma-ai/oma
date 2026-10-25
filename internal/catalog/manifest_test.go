@@ -167,6 +167,12 @@ func TestParseRejectsInvalidEnvironment(t *testing.T) {
     generate: base64
 `,
 		},
+		{
+			name: "unsupported source",
+			env: `  - name: BASE_URL
+    from: somewhere
+`,
+		},
 	}
 
 	for _, test := range tests {

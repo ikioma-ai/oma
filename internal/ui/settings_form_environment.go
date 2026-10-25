@@ -25,9 +25,9 @@ func NewSettingsFormEnvironment(settings docker.ApplicationSettings) SettingsFor
 
 	keys := slices.Sorted(maps.Keys(settings.EnvVars))
 	for _, k := range keys {
-		items = append(items, newEnvKeyItem(k), newEnvValueItem(settings.EnvVars[k]))
+		items = append(items, newEnvKeyItem(k), newEnvValueItem(settings.EnvVars[k], isSecretEnv(settings, k)))
 	}
-	items = append(items, newEnvKeyItem(""), newEnvValueItem(""))
+	items = append(items, newEnvKeyItem(""), newEnvValueItem("", false))
 
 	m := SettingsFormEnvironment{
 		title:    "Environment",
@@ -38,7 +38,7 @@ func NewSettingsFormEnvironment(settings docker.ApplicationSettings) SettingsFor
 	m.form.OnRebuild(func(f *Form) {
 		lastKeyIdx := f.ItemCount() - 2
 		if lastKeyIdx >= 0 && f.TextField(lastKeyIdx).Value() != "" {
-			f.AppendItems(newEnvKeyItem(""), newEnvValueItem(""))
+			f.AppendItems(newEnvKeyItem(""), newEnvValueItem("", false))
 		}
 	})
 
@@ -55,6 +55,15 @@ func NewSettingsFormEnvironment(settings docker.ApplicationSettings) SettingsFor
 			}
 			s.EnvVars[k] = f.TextField(i + 1).Value()
 		}
+
+		s.SecretEnv = nil
+		for name := range s.EnvVars {
+			if isSecretEnv(settings, name) {
+				s.SecretEnv = append(s.SecretEnv, name)
+			}
+		}
+		slices.Sort(s.SecretEnv)
+
 		return func() tea.Msg { return SettingsSectionSubmitMsg{Settings: s} }
 	})
 
@@ -209,9 +218,16 @@ func newEnvKeyItem(value string) FormItem {
 	return FormItem{Field: f}
 }
 
-func newEnvValueItem(value string) FormItem {
+func newEnvValueItem(value string, secret bool) FormItem {
 	f := NewTextField("value")
 	f.SetValue(value)
 	f.SetCharLimit(1024)
+	if secret {
+		f.SetEchoPassword()
+	}
 	return FormItem{Field: f}
+}
+
+func isSecretEnv(settings docker.ApplicationSettings, name string) bool {
+	return slices.Contains(settings.SecretEnv, name)
 }

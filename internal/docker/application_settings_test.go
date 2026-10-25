@@ -406,12 +406,15 @@ func TestCatalogSettingsMarshalRoundTrip(t *testing.T) {
 			{Path: "/data", Primary: true, Backup: true},
 			{Path: "/storage"},
 		},
+		EnvVars:   map[string]string{"TOKEN": "secret"},
+		SecretEnv: []string{"TOKEN"},
 	}
 
 	restored, err := UnmarshalApplicationSettings(original.Marshal())
 	require.NoError(t, err)
 	assert.True(t, original.Equal(restored))
 	assert.Equal(t, original.Storage, restored.Storage)
+	assert.Equal(t, original.SecretEnv, restored.SecretEnv)
 	require.NotNil(t, restored.Verify)
 	assert.False(t, *restored.Verify)
 }

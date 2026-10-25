@@ -118,6 +118,7 @@ type ApplicationSettings struct {
 	Verify             *bool              `json:"verify,omitempty"`
 	Storage            []StorageMount     `json:"storage,omitempty"`
 	EnvVars            map[string]string  `json:"env"`
+	SecretEnv          []string           `json:"secretEnv,omitempty"`
 	SMTP               SMTPSettings       `json:"smtp"`
 	Resources          ContainerResources `json:"resources"`
 	AutoUpdate         bool               `json:"autoUpdate"`
@@ -206,6 +207,9 @@ func (s ApplicationSettings) Equal(other ApplicationSettings) bool {
 		return false
 	}
 	if !slices.Equal(s.Storage, other.Storage) {
+		return false
+	}
+	if !slices.Equal(s.SecretEnv, other.SecretEnv) {
 		return false
 	}
 	if s.Resources != other.Resources {
