@@ -157,7 +157,7 @@ Connect directly to a remote Docker daemon over TCP with mutual TLS.
 | Verification | `--no-verify` on deploy/apply paths; failures remove the deployment but not the data volume |
 | Backups | Controller-side by default and labeled as such; remote-side backups require a separate decision |
 | Automation | Controller-driven `background run --target`; remote agent is deferred |
-| Provisioning | `oma target check` validates SSH, Docker, socket access, and proxy ports; install steps are documented |
+| Provisioning | `target add` stores the target, `target check` is read-only, and `target setup` is the explicit mutating path. Setup can install Docker and grant socket access on supported Linux hosts; manual setup remains first-class. |
 
 ### Parts
 
@@ -323,6 +323,50 @@ flowchart TB
 - Purple nodes are data stores.
 - Solid arrows are control flow.
 - Dashed arrows are data flow.
+
+## Setup Paths
+
+### Manual setup
+
+The default path is bring-your-own-host. The operator prepares SSH access and Docker, then Oma only reads and connects.
+
+```sh
+# On the target, as a sudo-capable user
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker deploy
+
+# On the controller
+oma target add vps --ssh deploy@vps --docker-socket /var/run/docker.sock
+oma target check vps
+oma --target vps list
+```
+
+Requirements: SSH key/agent access, Docker installed, and the SSH user allowed to read the Docker socket. With a non-root user, that means docker-group membership and a fresh SSH session after the group change. Root SSH works but is discouraged.
+
+### Guided setup
+
+`oma target setup <name>` is the optional, explicit bootstrap path, roughly the Oma equivalent of `kamal server bootstrap`:
+
+1. Probe SSH with batch mode and the user's existing config/agent.
+2. Detect the remote OS and architecture; bootstrap is supported on Linux only.
+3. Check `docker info` as the SSH user.
+4. If Docker is missing, offer to install it with `get.docker.com` (or print the distro commands if declined).
+5. If the socket is permission-denied, offer `usermod -aG docker <user>`.
+6. Reconnect with a fresh SSH session so group membership applies.
+7. Verify Docker, socket access, and the ability to pull the proxy image.
+8. Report DNS and firewall readiness for ports 80/443; do not change them automatically.
+9. Save the target only after verification succeeds.
+
+Safeguards:
+
+- Setup requires `--yes` or an interactive confirmation before any remote mutation.
+- Setup is idempotent; re-running it only verifies what already exists.
+- Setup never stores passwords, private keys, or tokens.
+- Setup does not create a remote Oma user, binary, or service.
+- Without sudo/root, setup fails with exact copy-paste commands.
+- Rootless Docker requires an explicit socket path.
+
+This is deliberately narrower than `kamal setup`: Oma does not deploy an app as part of setup, and no remote Oma process is installed. The bootstrap is closer to `kamal server bootstrap`, plus the socket-permission check Oma requires.
 
 ## Operational Semantics
 

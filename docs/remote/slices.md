@@ -14,7 +14,7 @@ Each slice is vertical and ends with a demo-able operator surface. Slices may la
 | V2 | SSH tunnel and remote operations | OpenSSH forward, Docker client injection, remote namespace, connection probe | Deploy and manage an app on a VPS |
 | V3 | TUI target switching | Switcher, active-target badge, rebuilt app state | Switch from laptop to VPS in the dashboard |
 | V4 | Remote observability and safety | Proxy metrics, host metrics or unavailable, `--no-verify`, backup labels | Remote dashboard and a safe verification failure |
-| V5 | Target check, provisioning, automation | Provisioning readiness, setup guidance, `background run --target` | Check a new VPS, then run scheduled updates from the controller |
+| V5 | Target setup, provisioning, automation | Explicit `target setup`, provisioning readiness, `background run --target` | Bootstrap a VPS, then run scheduled updates from the controller |
 
 V1 is the prerequisite for V2. V3 depends on V2. V4 depends on V2. V5 depends on V2 and V4.
 
@@ -195,29 +195,34 @@ flowchart TB
 
 **Out of scope:** Remote-side backup storage, remote agent telemetry.
 
-## V5: Target Check, Provisioning, Automation
+## V5: Target Setup, Provisioning, Automation
 
-**Goal:** An operator can validate and bootstrap a target, and understand what background automation does when the controller is offline.
+**Goal:** An operator can bootstrap a target explicitly, and understand what background automation does when the controller is offline.
 
 **Affordances:** U9, N10, N13
 
-**Demo:** `oma target check vps` reports SSH, Docker, socket, Docker group, DNS, and firewall readiness. `oma --target vps background run` updates and backs up remote apps while the controller runs; the UI/docs state that a sleeping controller stops automation.
+**Demo:** `oma target setup vps --yes` installs Docker if needed, fixes docker-group access, reconnects, verifies the socket, and reports DNS/firewall readiness. `oma --target vps background run` updates and backs up remote apps while the controller runs; the UI/docs state that a sleeping controller stops automation.
 
 **Acceptance**
 
-- `target check` preserves the V2 SSH, Docker, and socket results and adds provisioning readiness: docker-group membership, DNS, and ports 80/443.
-- Provisioning guidance covers Docker installation, docker-group membership, DNS, and ports 80/443.
+- `target add` stores a target without mutating the remote host.
+- `target check` is read-only and preserves the V2 SSH, Docker, and socket results.
+- `target setup` is explicit, confirmed, idempotent, and requires no remote Oma installation.
+- Setup installs Docker when missing, adds the SSH user to the docker group when permission is denied, and reconnects to verify.
+- Setup without sudo/root fails with exact manual commands.
+- Setup never stores passwords, private keys, or tokens.
+- Setup reports DNS and ports 80/443 readiness without changing firewall or DNS automatically.
 - `background run --target` uses the selected target and performs update/backup checks against it.
 - The background service records the target name and the controller-side backup path.
 - The UI/docs state that a stopped controller stops remote automation.
 - A remote-agent path is not implemented.
-- Tests cover check outcomes, background target selection, and offline-controller messaging.
+- Tests cover setup outcomes, check outcomes, background target selection, and offline-controller messaging.
 
-**Out of scope:** Remote Oma agent, multi-target scheduling, remote-side backup storage.
+**Out of scope:** Remote Oma agent, multi-target scheduling, remote-side backup storage, automatic DNS/firewall changes.
 
 ## Slice Grid
 
 |  |  |  |
 | :-- | :-- | :-- |
 | **V1: Target Config and Local Selection**<br>⏳ PENDING<br><br>• Target config<br>• Resolver<br>• CLI target commands<br>• Local default<br><br>*Demo: `target list` and `--target local`* | **V2: SSH Tunnel and Remote Operations**<br>⏳ PENDING<br><br>• OpenSSH forward<br>• Docker client injection<br>• Remote CRUD<br>• Connection probe<br><br>*Demo: Deploy and manage a VPS app* | **V3: TUI Target Switching**<br>⏳ PENDING<br><br>• Active-target badge<br>• Switcher<br>• State rebuild<br>• Failed-switch handling<br><br>*Demo: Switch laptop to VPS* |
-| **V4: Remote Observability and Safety**<br>⏳ PENDING<br><br>• Target metrics<br>• Unavailable fallback<br>• `--no-verify`<br>• Non-destructive failure<br><br>*Demo: Remote dashboard and safe failure* | **V5: Target Check and Automation**<br>⏳ PENDING<br><br>• Provisioning check<br>• Setup guidance<br>• Background target<br>• Offline-controller notes<br><br>*Demo: Validate a VPS and run backups* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Remote agent/API<br>• Fleet scheduling<br>• Docker TCP/TLS<br>• Remote-side backups<br><br>*Demo: Not part of this phase* |
+| **V4: Remote Observability and Safety**<br>⏳ PENDING<br><br>• Target metrics<br>• Unavailable fallback<br>• `--no-verify`<br>• Non-destructive failure<br><br>*Demo: Remote dashboard and safe failure* | **V5: Target Setup and Automation**<br>⏳ PENDING<br><br>• Explicit setup<br>• Provisioning check<br>• Background target<br>• Offline-controller notes<br><br>*Demo: Bootstrap a VPS and run backups* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Remote agent/API<br>• Fleet scheduling<br>• Docker TCP/TLS<br>• Remote-side backups<br><br>*Demo: Not part of this phase* |
