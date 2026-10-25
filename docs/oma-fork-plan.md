@@ -191,6 +191,7 @@ Artifacts:
 
 - [`docs/catalog/shaping.md`](catalog/shaping.md): requirements, shapes, fit check, selected parts, breadboard.
 - [`docs/catalog/slices.md`](catalog/slices.md): V1–V5 slices, sliced breadboard, acceptance criteria.
+- [`specs/app-catalog.md`](../specs/app-catalog.md): multi-slice behavioral spec, validated by `nmux spec validate`.
 
 Note that the common case described for Oma is Rails backends serving mobile apps and Hotwire Native clients. Those are ordinary web apps and fit the v1 contract; workers and sidecars are an extension, not a prerequisite.
 

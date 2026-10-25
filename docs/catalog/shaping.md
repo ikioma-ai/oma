@@ -2,7 +2,7 @@
 
 Status: shape selected, breadboarded, ready to slice
 Selected shape: **A — Local-first single-file manifests**
-Related: [`slices.md`](slices.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Related: [`slices.md`](slices.md) · [`../../specs/app-catalog.md`](../../specs/app-catalog.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Frame
 

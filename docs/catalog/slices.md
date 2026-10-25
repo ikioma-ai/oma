@@ -2,7 +2,7 @@
 
 Selected shape: **A — Local-first single-file manifests**
 Ground truth for R, fit check, parts, and breadboard: [`shaping.md`](shaping.md)
-Related: [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Related: [`../../specs/app-catalog.md`](../../specs/app-catalog.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 Each slice is vertical: it ends with a demo-able user-visible result. Slices may land as separate commits or pull requests, but each keeps the build and tests green.
 
