@@ -1,7 +1,7 @@
 # Remote Targets — Shaping
 
 Status: shape selected, breadboarded, ready to slice
-Selected shape: **A — Controller-driven Docker over SSH**
+Selected shape: **A — Controller-driven Docker over SSH, transport-abstracted**
 Related: [`slices.md`](slices.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Frame
@@ -53,6 +53,9 @@ One local Oma binary can deploy to and manage a local machine, another home mach
 | R25 | Multiple targets may use namespaces without colliding | Must-have |
 | R26 | Tunnels and temporary sockets are cleaned up on exit and cancellation | Should-have |
 | R27 | Cancelling an operation closes its tunnel and child process | Must-have |
+| R28 | Target transport is an interface; local, SSH, and future agent implementations do not change command or TUI behavior | Must-have |
+| R29 | A target-local background runner can be added without changing app or state formats | Should-have |
+| R30 | Interactive and background operations coordinate through a shared lock to avoid concurrent deploy/backup work | Must-have |
 
 Out-of-scope rows are not scored in the fit check.
 
@@ -136,6 +139,9 @@ Connect directly to a remote Docker daemon over TCP with mutual TLS.
 | R25 | Multiple targets may use namespaces without colliding | Must-have | ✅ | ✅ | ✅ | ✅ |
 | R26 | Tunnels and temporary sockets are cleaned up | Should-have | ✅ | ✅ | ✅ | ✅ |
 | R27 | Cancelling an operation closes its tunnel and child process | Must-have | ✅ | ✅ | ✅ | ✅ |
+| R28 | Target transport is an interface; local, SSH, and future agent implementations do not change command or TUI behavior | Must-have | ✅ | ✅ | ✅ | ✅ |
+| R29 | A target-local background runner can be added without changing app or state formats | Should-have | ✅ | ✅ | ✅ | ✅ |
+| R30 | Interactive and background operations coordinate through a shared lock to avoid concurrent deploy/backup work | Must-have | ✅ | ✅ | ✅ | ✅ |
 
 **Notes**
 
@@ -173,8 +179,30 @@ Connect directly to a remote Docker daemon over TCP with mutual TLS.
 | **A8** | Verification skip and non-destructive failure handling | |
 | **A9** | Backup/automation semantics and UI labels | |
 | **A10** | Target check, tests, and operator docs | |
+| **A11** | Transport interface: connect returns a Docker client plus cleanup; local, SSH, and future agent transports implement it | |
+| **A12** | Operation lock in shared Docker state; interactive and background work acquire it before deploy/update/backup | |
 
 No flagged unknowns remain for the selected shape.
+
+### Extensibility seams
+
+The selected shape is not just a one-off SSH path. Two seams keep the recommended follow-ons cheap:
+
+**Transport seam**
+
+- Every command and TUI screen depends on a target transport contract, not on SSH.
+- The local transport returns the existing Docker client.
+- The SSH transport starts a tunnel and returns a Docker client bound to the local socket.
+- A future agent transport can return a Docker client connected to the agent's scoped Docker proxy, or a higher-level control client behind the same target boundary.
+- Target metadata (name, source, capabilities) is separate from the connection mechanism.
+
+**Background-runner seam**
+
+- The background scheduler accepts a target; it does not assume the controller is the Docker host.
+- Phase 3 runs it on the controller with `background run --target`.
+- A future target-local runner can run the same update/backup jobs against local Docker.
+- Both paths share Docker state and acquire the same operation lock, so a controller deploy and a target-local backup cannot race.
+- Backup ownership remains explicit: controller-side in Phase 3, target-side for a future runner.
 
 ## Breadboard
 
@@ -209,7 +237,7 @@ No flagged unknowns remain for the selected shape.
 | # | Place | Component | Affordance | Control | Wires Out | Returns To |
 | --- | --- | --- | --- | --- | --- | --- |
 | N1 | P7 | target config | `Load()` / `Save()` | call | → S1 | → N2 |
-| N2 | P3 | target resolver | `Resolve(name)` with flag/env/default | call | → N3, N4 | → N1 |
+| N2 | P3 | target resolver | `Resolve(name)` with flag/env/default | call | → N14 | → N1 |
 | N3 | P4 | tunnel | `Start()` OpenSSH forward | call | → S2, N4 | → N2 |
 | N4 | P3 | docker | Create client for local socket or local daemon | call | → N5 | → N2 |
 | N5 | P3 | namespace | Construct namespace with injected client | call | → P5 | → N2 |
@@ -220,7 +248,9 @@ No flagged unknowns remain for the selected shape.
 | N10 | P4 | target check | Probe SSH, Docker, socket, and ports | call | → N1, N3 | → U2 |
 | N11 | P4 | tunnel | Stop process and remove socket on cancellation | call | → S2 | → N3 |
 | N12 | P3 | backup | Label backup destination as controller-side | call | → S4 | → U7 |
-| N13 | P3 | background | Run scheduled update/backup checks against the selected target | call | → N2, N5 | → U7 |
+| N13 | P3 | background | Run scheduled update/backup checks against the selected target | call | → N2, N5, N15 | → U7 |
+| N14 | P3 | transport | `Connect(ctx)` returns a Docker client and cleanup; local, SSH, and future agent transports implement it | call | → N3, N4 | → N2 |
+| N15 | P3 | operation lock | Acquire/release the shared lock before deploy, update, or backup | call | → S3 | → N5, N13 |
 
 ### Data Stores
 
@@ -228,7 +258,7 @@ No flagged unknowns remain for the selected shape.
 | --- | --- | --- |
 | S1 | Target config | Target names, SSH destinations, sockets, namespaces, default |
 | S2 | Local socket | Temporary streamlocal socket for the SSH forward |
-| S3 | Remote Docker state | App labels, proxy volume, app volumes |
+| S3 | Remote Docker state | App labels, proxy volume, app volumes, operation lock |
 | S4 | Metrics/backup metadata | Remote metrics and controller-side backup paths |
 
 ### Wiring
@@ -254,6 +284,7 @@ flowchart TB
     N2["N2: resolve target"]
     N4["N4: docker client"]
     N5["N5: namespace"]
+    N14["N14: transport connect"]
     N7["N7: proxy metrics"]
     N8["N8: verification"]
     N9["N9: host metrics"]
@@ -273,6 +304,7 @@ flowchart TB
 
   subgraph P5["P5: Remote Docker"]
     P5D["Remote daemon, proxy, apps, volumes"]
+    S3[("S3: remote Docker state + lock")]
   end
 
   subgraph P6["P6: Remote Metrics"]
@@ -288,11 +320,14 @@ flowchart TB
   N6["N6: TUI target switch"] --> N2
   N13["N13: background run --target"] --> N2
   N13 --> N5
+  N13 --> N15
+  N15["N15: operation lock"] --> S3
 
   N1 --> S1
   N2 --> N1
-  N2 --> N3
-  N2 --> N4
+  N2 --> N14
+  N14 --> N3
+  N14 --> N4
   N3 --> N4
   N4 --> N5
   N5 --> P5D
@@ -312,8 +347,8 @@ flowchart TB
   classDef store fill:#e6e6fa,stroke:#9370db,color:#000
 
   class U1,U2,U3,U4,U5,U6,U7,U8,U9 ui
-  class N1,N2,N3,N4,N5,N6,N7,N8,N9,N10,N11,N12,N13 nonui
-  class S1,S4 store
+  class N1,N2,N3,N4,N5,N6,N7,N8,N9,N10,N11,N12,N13,N14,N15 nonui
+  class S1,S3,S4 store
 ```
 
 **Legend**

@@ -1,6 +1,6 @@
 # Remote Targets — Slices
 
-Selected shape: **A — Controller-driven Docker over SSH**
+Selected shape: **A — Controller-driven Docker over SSH, transport-abstracted**
 Ground truth for R, fit check, parts, and breadboard: [`shaping.md`](shaping.md)
 Related: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
@@ -29,6 +29,7 @@ flowchart TB
     N2["N2: resolve target"]
     N4["N4: local docker client"]
     N5["N5: namespace"]
+    N14["N14: transport connect"]
   end
 
   subgraph V2["V2: SSH TUNNEL AND REMOTE OPERATIONS"]
@@ -57,6 +58,7 @@ flowchart TB
     U9["U9: provisioning readiness report"]
     N10["N10: target check"]
     N13["N13: background run --target"]
+    N15["N15: operation lock"]
   end
 
   S1[("S1: target config")]
@@ -68,12 +70,13 @@ flowchart TB
   U3 --> N2
   N1 --> S1
   N2 --> N1
-  N2 --> N4
+  N2 --> N14
+  N14 --> N4
   N4 --> N5
   N5 --> P5
 
   U9 --> N10
-  N2 --> N3
+  N14 --> N3
   N3 --> S2
   N3 --> N4
   N4 --> N5
@@ -95,6 +98,8 @@ flowchart TB
   N10 --> P5
   N13 --> N2
   N13 --> N5
+  N13 --> N15
+  N15 --> P5
 
   style V1 fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
   style V2 fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
@@ -107,7 +112,7 @@ flowchart TB
   classDef store fill:#e6e6fa,stroke:#9370db,color:#000
 
   class U1,U2,U3,U4,U5,U6,U7,U8,U9 ui
-  class N1,N2,N3,N4,N5,N6,N7,N8,N9,N10,N11,N12,N13 nonui
+  class N1,N2,N3,N4,N5,N6,N7,N8,N9,N10,N11,N12,N13,N14,N15 nonui
   class S1,S2,S4 store
 ```
 
@@ -115,7 +120,7 @@ flowchart TB
 
 **Goal:** Targets are data, and the local target remains the default.
 
-**Affordances:** U1, U3, N1, N2, N4, N5
+**Affordances:** U1, U3, N1, N2, N4, N5, N14
 
 **Demo:** `oma target list` shows `local` as the default. `oma --target local list` returns the same apps as `oma list`. A missing target name produces a clear error.
 
@@ -127,6 +132,8 @@ flowchart TB
 - `--target` selects a target; `OMA_TARGET` is the fallback; the config default is last.
 - Unknown target names fail before any Docker call.
 - The local target uses the existing Docker client path and does not start SSH.
+- Target resolution returns a transport implementation; the local implementation satisfies the same contract the future SSH and agent transports use.
+- Command construction depends on the transport contract, not on a concrete SSH process.
 - Removing the default target is rejected or reassigns the default explicitly.
 - Unit and CLI tests pass.
 
@@ -144,6 +151,7 @@ flowchart TB
 
 - Target creation stores an SSH destination, Docker socket, and namespace.
 - The tunnel starts OpenSSH with a short local socket and waits for readiness.
+- The SSH implementation satisfies the same transport contract as the local target; commands and TUI code are unchanged.
 - Docker operations use the injected remote client; no local Docker state is read.
 - Deploy, list, start, stop, update, logs, exec, backup, restore, remove, and settings work remotely.
 - App and proxy state appears only on the remote daemon.
@@ -199,7 +207,7 @@ flowchart TB
 
 **Goal:** An operator can bootstrap a target explicitly, and understand what background automation does when the controller is offline.
 
-**Affordances:** U9, N10, N13
+**Affordances:** U9, N10, N13, N15
 
 **Demo:** `oma target setup vps --yes` installs Docker if needed, fixes docker-group access, reconnects, verifies the socket, and reports DNS/firewall readiness. `oma --target vps background run` updates and backs up remote apps while the controller runs; the UI/docs state that a sleeping controller stops automation.
 
@@ -213,10 +221,12 @@ flowchart TB
 - Setup never stores passwords, private keys, or tokens.
 - Setup reports DNS and ports 80/443 readiness without changing firewall or DNS automatically.
 - `background run --target` uses the selected target and performs update/backup checks against it.
+- Interactive and background operations acquire the shared operation lock before deploy, update, or backup.
+- The background runner depends on the target transport, not on a concrete SSH process.
 - The background service records the target name and the controller-side backup path.
 - The UI/docs state that a stopped controller stops remote automation.
-- A remote-agent path is not implemented.
-- Tests cover setup outcomes, check outcomes, background target selection, and offline-controller messaging.
+- A remote-agent path and a target-local runner are not implemented, but the transport and runner seams are documented and tested at the interface level.
+- Tests cover setup outcomes, check outcomes, background target selection, operation-lock contention, and offline-controller messaging.
 
 **Out of scope:** Remote Oma agent, multi-target scheduling, remote-side backup storage, automatic DNS/firewall changes.
 
@@ -225,4 +235,4 @@ flowchart TB
 |  |  |  |
 | :-- | :-- | :-- |
 | **V1: Target Config and Local Selection**<br>⏳ PENDING<br><br>• Target config<br>• Resolver<br>• CLI target commands<br>• Local default<br><br>*Demo: `target list` and `--target local`* | **V2: SSH Tunnel and Remote Operations**<br>⏳ PENDING<br><br>• OpenSSH forward<br>• Docker client injection<br>• Remote CRUD<br>• Connection probe<br><br>*Demo: Deploy and manage a VPS app* | **V3: TUI Target Switching**<br>⏳ PENDING<br><br>• Active-target badge<br>• Switcher<br>• State rebuild<br>• Failed-switch handling<br><br>*Demo: Switch laptop to VPS* |
-| **V4: Remote Observability and Safety**<br>⏳ PENDING<br><br>• Target metrics<br>• Unavailable fallback<br>• `--no-verify`<br>• Non-destructive failure<br><br>*Demo: Remote dashboard and safe failure* | **V5: Target Setup and Automation**<br>⏳ PENDING<br><br>• Explicit setup<br>• Provisioning check<br>• Background target<br>• Offline-controller notes<br><br>*Demo: Bootstrap a VPS and run backups* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Remote agent/API<br>• Fleet scheduling<br>• Docker TCP/TLS<br>• Remote-side backups<br><br>*Demo: Not part of this phase* |
+| **V4: Remote Observability and Safety**<br>⏳ PENDING<br><br>• Target metrics<br>• Unavailable fallback<br>• `--no-verify`<br>• Non-destructive failure<br><br>*Demo: Remote dashboard and safe failure* | **V5: Target Setup and Automation**<br>⏳ PENDING<br><br>• Explicit setup<br>• Provisioning check<br>• Background target<br>• Offline-controller notes<br><br>*Demo: Bootstrap a VPS and run backups* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Remote agent transport<br>• Target-local runner<br>• Fleet scheduling<br>• Docker TCP/TLS<br>• Remote-side backups<br><br>*Demo: Not part of this phase* |

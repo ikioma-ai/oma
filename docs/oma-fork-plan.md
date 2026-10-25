@@ -590,7 +590,7 @@ Exit criteria:
 
 ### Phase 3: Remote targets
 
-Status: shaped and sliced; implementation next.
+Status: shaped and sliced; selected shape is transport-abstracted with a background-runner seam. Implementation next.
 
 Artifacts:
 
