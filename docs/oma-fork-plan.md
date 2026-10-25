@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 1 and Phase 2 complete; Phase 3 next
+Status: Phases 1–2 complete; Phase 3 shaped and sliced, implementation next
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -589,6 +589,13 @@ Exit criteria:
 - An installed app is unchanged when its catalog entry changes until apply is run.
 
 ### Phase 3: Remote targets
+
+Status: shaped and sliced; implementation next.
+
+Artifacts:
+
+- [`docs/remote/shaping.md`](remote/shaping.md): requirements, shapes, fit check, selected parts, breadboard.
+- [`docs/remote/slices.md`](remote/slices.md): V1–V5 slices, sliced breadboard, acceptance criteria.
 
 1. Add `internal/target` and config loading.
 2. Add `oma target add`, `list`, and `remove`.
