@@ -8,6 +8,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ikioma-ai/oma/internal/catalog"
 )
 
 func TestInstallAppList_SelectKnownApp(t *testing.T) {
@@ -110,4 +112,43 @@ func TestExpandAlias(t *testing.T) {
 	ref, ok = expandAlias("ghcr.io/basecamp/once-campfire:latest")
 	assert.False(t, ok)
 	assert.Equal(t, "ghcr.io/basecamp/once-campfire:latest", ref)
+}
+
+func TestFindCatalogEntryUsesUserOverride(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	appDir := filepath.Join(dir, "oma", "apps")
+	require.NoError(t, os.MkdirAll(appDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(appDir, "campfire.yaml"), []byte(`schemaVersion: 1
+id: campfire
+name: Campfire Custom
+description: A custom chat app
+category: Communication
+image: example.com/campfire:custom
+`), 0o644))
+
+	entry, ok := findCatalogEntry("campfire")
+	require.True(t, ok)
+	assert.Equal(t, "example.com/campfire:custom", entry.Image)
+	assert.Equal(t, catalog.SourceUser, entry.Source)
+}
+
+func TestExpandAliasUserEntry(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	appDir := filepath.Join(dir, "oma", "apps")
+	require.NoError(t, os.MkdirAll(appDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(appDir, "myapp.yaml"), []byte(`schemaVersion: 1
+id: myapp
+name: My App
+description: A local app
+category: Utilities
+image: example.com/myapp:v1
+`), 0o644))
+
+	ref, ok := expandAlias("myapp")
+	assert.True(t, ok)
+	assert.Equal(t, "example.com/myapp:v1", ref)
 }

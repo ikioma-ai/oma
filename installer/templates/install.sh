@@ -3,7 +3,7 @@ set -eu
 
 REPO='ikioma-ai/oma'
 INSTALL_DIR='/usr/local/bin'
-IMAGE_REF='{{ .ImageRef }}'
+INSTALL_REF='{{ .InstallRef }}'
 RELEASE_JSON=''
 OMA_BIN=''
 
@@ -126,8 +126,8 @@ install_oma() {
 
 run_oma() {
   install_flag=""
-  if [ -n "$IMAGE_REF" ]; then
-    install_flag="--install=${IMAGE_REF}"
+  if [ -n "$INSTALL_REF" ]; then
+    install_flag="--install=${INSTALL_REF}"
   fi
 
   case "$DOCKER_MODE" in

@@ -1,0 +1,28 @@
+{
+  "apps": [
+    {
+      "id": "campfire",
+      "name": "Campfire",
+      "description": "Group chat for teams",
+      "category": "Communication",
+      "image": "ghcr.io/basecamp/once-campfire",
+      "hostname": "chat.example.com"
+    },
+    {
+      "id": "fizzy",
+      "name": "Fizzy",
+      "description": "Project boards and issue tracking",
+      "category": "Productivity",
+      "image": "ghcr.io/basecamp/fizzy",
+      "hostname": "fizzy.example.com"
+    },
+    {
+      "id": "writebook",
+      "name": "Writebook",
+      "description": "Publish books from Markdown",
+      "category": "Publishing",
+      "image": "ghcr.io/basecamp/writebook",
+      "hostname": "books.example.com"
+    }
+  ]
+}

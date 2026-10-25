@@ -2,6 +2,8 @@ package command
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -20,10 +22,28 @@ func newCatalogCommand() *catalogCommand {
 		Short: "Manage the application catalog",
 	}
 
+	c.cmd.AddCommand(newCatalogAddCommand().cmd)
 	c.cmd.AddCommand(newCatalogListCommand().cmd)
 	c.cmd.AddCommand(newCatalogShowCommand().cmd)
 	c.cmd.AddCommand(newCatalogValidateCommand().cmd)
 
+	return c
+}
+
+type catalogAddCommand struct {
+	cmd   *cobra.Command
+	force bool
+}
+
+func newCatalogAddCommand() *catalogAddCommand {
+	c := &catalogAddCommand{}
+	c.cmd = &cobra.Command{
+		Use:   "add <file>",
+		Short: "Add or update a catalog entry from a manifest file",
+		Args:  cobra.ExactArgs(1),
+		RunE:  c.run,
+	}
+	c.cmd.Flags().BoolVar(&c.force, "force", false, "replace an existing catalog entry")
 	return c
 }
 
@@ -74,6 +94,40 @@ func newCatalogValidateCommand() *catalogValidateCommand {
 }
 
 // Private
+
+func (c *catalogAddCommand) run(cmd *cobra.Command, args []string) error {
+	data, err := os.ReadFile(args[0])
+	if err != nil {
+		return fmt.Errorf("reading manifest: %w", err)
+	}
+
+	manifest, err := catalog.Parse(data)
+	if err != nil {
+		return fmt.Errorf("validating manifest %s: %w", args[0], err)
+	}
+
+	dir, err := catalog.UserDir()
+	if err != nil {
+		return fmt.Errorf("resolving user catalog directory: %w", err)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("creating user catalog directory: %w", err)
+	}
+
+	destination := filepath.Join(dir, manifest.ID+".yaml")
+	if !c.force {
+		if _, err := os.Stat(destination); err == nil {
+			return fmt.Errorf("catalog entry %q already exists at %s (use --force to replace it)", manifest.ID, destination)
+		}
+	}
+
+	if err := os.WriteFile(destination, data, 0o644); err != nil {
+		return fmt.Errorf("writing catalog entry: %w", err)
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "Added %s to %s\n", manifest.ID, destination)
+	return nil
+}
 
 func (c *catalogListCommand) run(cmd *cobra.Command, args []string) error {
 	store, err := loadCatalog(cmd)

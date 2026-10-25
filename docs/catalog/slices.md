@@ -242,6 +242,8 @@ Status: complete.
 
 ## V4: Installer and Install Resolution
 
+Status: complete.
+
 **Goal:** Embedding and user catalogs both resolve at install time, and the hosted installer serves embedded data.
 
 **Parts:** A2, A9, A10
@@ -311,4 +313,4 @@ Status: complete.
 |  |  |  |
 | :-- | :-- | :-- |
 | **V1: Catalog Read Path and App List**<br>✅ COMPLETE<br><br>• Manifest schema and validation<br>• Embedded and user loaders<br>• Merge by ID<br>• TUI and CLI list metadata<br><br>*Demo: A local manifest appears without a rebuild* | **V2: Deploy Contract**<br>✅ COMPLETE<br><br>• Port and health flags<br>• Mount targets<br>• TLS and verification<br>• Settings snapshot<br><br>*Demo: An app on port 3000 with `/healthz` deploys* | **V3: Environment Model**<br>✅ COMPLETE<br><br>• Required, default, generated values<br>• Secret fields<br>• Install form<br>• Env build<br><br>*Demo: A required `DATABASE_URL` is prompted and installed* |
-| **V4: Installer and Install Resolution**<br>⏳ PENDING<br><br>• `/apps.json` and `/apps/{id}`<br>• ID, alias, image resolution<br>• `catalog add`<br>• `--install` paths<br><br>*Demo: Hosted and local catalog installs both work* | **V5: Catalog Apply**<br>⏳ PENDING<br><br>• Diff and preview<br>• Explicit confirmation<br>• Safe field subset<br>• No env overwrite<br><br>*Demo: Edit a manifest and preview the change* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Multiple named volumes<br>• Worker apps<br>• Multi-container stacks<br>• Remote catalogs<br><br>*Demo: Not part of this release* |
+| **V4: Installer and Install Resolution**<br>✅ COMPLETE<br><br>• `/apps.json` and `/apps/{id}`<br>• ID, alias, image resolution<br>• `catalog add`<br>• `--install` paths<br><br>*Demo: Hosted and local catalog installs both work* | **V5: Catalog Apply**<br>⏳ PENDING<br><br>• Diff and preview<br>• Explicit confirmation<br>• Safe field subset<br>• No env overwrite<br><br>*Demo: Edit a manifest and preview the change* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Multiple named volumes<br>• Worker apps<br>• Multi-container stacks<br>• Remote catalogs<br><br>*Demo: Not part of this release* |

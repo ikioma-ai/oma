@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 1 complete; Phase 2 in progress (V1–V3 complete, V4 next)
+Status: Phase 1 complete; Phase 2 in progress (V1–V4 complete, V5 next)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -554,13 +554,15 @@ Exit criteria:
 
 ### Phase 2: Catalog
 
-Status: V1 (catalog read path), V2 (deploy contract), and V3 (environment model) complete; V4 (installer and resolution) next.
+Status: V1–V4 complete; V5 (catalog apply) next.
 
 V1 delivered the manifest schema and validation, embedded built-in manifests, the local user catalog loader and merge, `oma catalog list/show/validate`, and the TUI app list backed by the merged catalog.
 
 V2 delivered catalog-driven deployment: service port, health path/port/timeout, TLS mode, verification toggle, mount targets, and the install-time settings snapshot. A real Docker smoke deployed an app on port 3000 with `/healthz`, two mount targets, and a primary-only backup.
 
 V3 delivered the environment model: required/default/generated/secret values, an install-time environment form, secret masking in the TUI and settings screen, and persisted generated values. System-derived values remain supplied by the existing environment builder.
+
+V4 delivered installer resolution: embedded `/apps.json` and `/apps/{id}`, raw image routes, local `catalog add`, and user/embedded/alias/image resolution in the install path. The installer catalog is kept in sync with the embedded catalog by a root-module test.
 
 1. Add `internal/catalog`.
 2. Add the manifest schema and validation, including `schemaVersion` and `kind: web`.
