@@ -166,11 +166,34 @@ Deploy, list, start, stop, exec, logs, and backup work through the Docker API. W
 
 ### 3.1 Data-driven app catalog
 
+#### 3.1.0 Shaping decisions
+
+The catalog shape is selected. These decisions are fixed for the first release:
+
+| Decision | Chosen approach |
+| --- | --- |
+| Catalog sources | Embedded built-ins plus a user directory. No remote catalog in v1. |
+| Storage model | One named volume with multiple mount targets. Multiple named volumes are deferred. |
+| App kinds | Web apps only in v1. Workers and multi-container stacks are deferred, but the manifest carries `schemaVersion` and `kind` so they can be added later without breaking v1 parsers. |
+| Installed-app lifecycle | Catalog values seed new installs. Existing apps change only through an explicit `oma catalog apply` operation. No silent re-resolution on deploy or update. |
+
+These decisions remove the largest implementation forks. The catalog still needs a short shaping pass for:
+
+1. Environment form depth: text and secret fields only, or typed fields such as number, boolean, and select.
+2. `catalog apply` conflict UX: preview and confirmation behavior, and which fields are allowed to change.
+3. Override semantics: whole-entry replacement versus field-level patches, and how to disable a built-in entry.
+4. Schema version policy: rejection rules and migration expectations for `schemaVersion` bumps.
+5. Version and update policy: whether manifests pin tags, digests, or both, and how that interacts with auto-update.
+
+Note that the common case described for Oma is Rails backends serving mobile apps and Hotwire Native clients. Those are ordinary web apps and fit the v1 contract; workers and sidecars are an extension, not a prerequisite.
+
 #### 3.1.1 Manifest format
 
 Use YAML for authoring and JSON for the installed/remote catalog. Schema:
 
 ```yaml
+schemaVersion: 1
+kind: web
 id: writebook
 name: Writebook
 description: Publish books from Markdown
@@ -230,21 +253,22 @@ Validation rules:
 #### 3.1.2 Resolution order
 
 1. Embedded `apps/*.yaml` compiled into the binary.
-2. `~/.config/once/apps/*.yaml` (or `$XDG_CONFIG_HOME/once/apps`).
-3. `$ONCE_CATALOG_PATH`, which may be a file, directory, or URL.
-4. Optional remote `ONCE_CATALOG_URL`, cached with ETag and a last-known-good copy.
+2. `~/.config/oma/apps/*.yaml` (or `$XDG_CONFIG_HOME/oma/apps`).
 
-Merge by `id`; later sources override earlier ones. This lets users patch an image tag or health path without forking.
+Merge by `id`. A user entry replaces the embedded entry with the same `id`; there is no field-level patching in v1. A user entry can disable a built-in with `disabled: true` if that proves useful, but the exact disable mechanism is part of the remaining shaping pass.
+
+Remote catalogs and `OMA_CATALOG_URL` are deferred. If added later, they must follow a separate trust decision and must not change the v1 local merge rules.
 
 #### 3.1.3 Installer integration
 
-- Serve `GET /apps.json` with the merged catalog.
+- Serve `GET /apps.json` from the **embedded** catalog only. The installer host does not know about a user's local catalog.
 - Add `GET /apps/{id}` before the catch-all image route.
   - Validate IDs with the catalog ID regex.
   - Emit `--install=<id>`.
 - Keep `GET /{image...}` for raw image references.
-- `--install` resolves in this order: catalog ID, built-in alias, raw image reference.
-- TUI fetches `/apps.json` at startup and falls back to embedded apps when offline.
+- `--install` resolves in this order: user catalog, embedded catalog, built-in alias, raw image reference.
+- The TUI resolves the local merged catalog directly. It does not need to fetch `/apps.json`; that route exists for installer-hosted landing pages and future remote catalogs.
+- A user-local catalog cannot be used to construct an installer URL because the installer cannot see it. Local apps are added with `oma catalog add` or `--install=<path-or-id>`.
 
 #### 3.1.4 Installer and TUI UX
 
@@ -253,24 +277,50 @@ Merge by `id`; later sources override earlier ones. This lets users patch an ima
 - A dynamic environment form appears after hostname when the manifest declares required or prompted env vars.
 - Generated secrets are created at install time and stored with the app settings.
 - Settings screens pre-populate catalog defaults and allow per-app overrides.
-- The app's source (`builtin`, `user`, `url`) is visible in the UI.
+- The app's source (`builtin` or `user`) is visible in the UI. `url` becomes available only if remote catalogs are added later.
 
 #### 3.1.5 Persistence and backward compatibility
 
 Extend `ApplicationSettings` with optional fields. Zero values must reproduce current behavior:
 
 - `CatalogID string`
+- `CatalogSource string` (`builtin` or `user`)
 - `ServicePort int` (default 80)
 - `HealthCheckPath string` (default `/up`)
 - `HealthCheckPort int`
 - `Volumes []VolumeMount`
 - `Command []string`
+- `User string`
 - `TLSMode string` (`auto` or `off`)
 - `Verify *bool` (nil means current behavior)
 
 Old labels continue to unmarshal. Existing apps keep the Rails-style key generation and current mount targets until their settings are migrated or they are redeployed with a catalog ID.
 
-#### 3.1.6 Multi-volume scope
+#### 3.1.6 Catalog lifecycle
+
+Catalog values are defaults, not live configuration.
+
+- Installation copies the resolved manifest values into `ApplicationSettings`.
+- Deploy, update, restart, and backup never re-read the catalog for an existing app.
+- `oma catalog apply <host>` previews the differences between the stored settings and the current manifest.
+- Apply requires confirmation, or `--yes` for scripts.
+- The first apply supports a defined subset: image, service port, health settings, TLS mode, verification, resources, and additional mount targets. Environment values and secrets require separate handling and are not overwritten by default.
+- Removing an app from the catalog does not affect installed apps.
+- A catalog entry changing its `image` tag does not change an installed app until apply or an explicit image setting change.
+
+This preserves reproducibility and avoids a catalog edit silently redeploying production.
+
+#### 3.1.7 Future workers and multi-container stacks
+
+V1 accepts only `kind: web`. To keep the extension path open:
+
+- Every manifest carries `schemaVersion: 1`.
+- `kind` is optional and defaults to `web`; unknown kinds are rejected by v1.
+- A future worker kind can reuse storage, env, hooks, and resources while skipping the proxy route and hostname.
+- A future stack kind needs a services array, per-service health, and a primary HTTP service. That is a separate data model and must not be approximated with hidden sidecar fields in v1.
+- Older binaries reject newer `schemaVersion` values rather than partially interpreting them.
+
+#### 3.1.8 Multi-volume scope
 
 Phase 1 supports **one named volume with multiple mount targets**. This covers the common Rails-style `/storage` plus `/rails/storage` case and preserves the current backup format.
 
@@ -497,15 +547,16 @@ Exit criteria:
 ### Phase 2: Catalog
 
 1. Add `internal/catalog`.
-2. Add the manifest schema and validation.
-3. Replace `knownApps` with the merged catalog store.
-4. Extend `ApplicationSettings` with backward-compatible fields.
+2. Add the manifest schema and validation, including `schemaVersion` and `kind: web`.
+3. Replace `knownApps` with the merged embedded and user catalog.
+4. Extend `ApplicationSettings` with backward-compatible catalog fields.
 5. Pass target port and health-check settings to `kamal-proxy`.
 6. Drive mount targets from settings.
 7. Add install-time environment forms.
-8. Add installer `/apps.json` and `/apps/{id}`.
-9. Add CLI commands: `oma catalog list`, `oma catalog show`, `oma catalog validate`, `oma catalog add`.
+8. Add installer `/apps.json` and `/apps/{id}` from the embedded catalog.
+9. Add CLI commands: `oma catalog list`, `oma catalog show`, `oma catalog validate`, `oma catalog add`, `oma catalog apply`.
 10. Update the app list and settings screens.
+11. Add explicit apply preview and confirmation behavior.
 
 Exit criteria:
 
@@ -513,7 +564,9 @@ Exit criteria:
 - An app with data at `/data` survives restart and backup/restore.
 - A required env var blocks installation until supplied.
 - A user catalog file overrides a built-in image tag.
+- `oma catalog apply` previews changes and does not overwrite environment values or secrets.
 - Existing image and alias installs still work.
+- An installed app is unchanged when its catalog entry changes until apply is run.
 
 ### Phase 3: Remote targets
 
@@ -609,7 +662,7 @@ Exit criteria:
 1. Remote model: Docker-over-SSH only, or Docker-over-SSH plus a remote agent for 24/7 automation.
 2. Backup ownership: controller disk, target disk, or object storage.
 3. LAN TLS: per-app `tls: off`, private CA, or DNS-01.
-4. Catalog trust: embedded only, trusted URL, or signed manifests.
+4. Remote catalog trust: deferred. V1 is embedded plus a local user directory; any future remote URL or signed manifest work starts with a separate threat model.
 5. Windows support: WSL2 only, or a native build and installer.
 6. Proxy image: continue using `basecamp/kamal-proxy` or publish a pinned Oma image.
 7. Branding: final install host. `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder. The GitHub organization is `ikioma-ai`, and the modification notice uses "the Oma authors".
