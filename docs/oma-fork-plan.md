@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 1 complete; Phase 2 next
+Status: Phase 1 complete; Phase 2 shaped and sliced, implementation next
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -177,19 +177,26 @@ The catalog shape is selected. These decisions are fixed for the first release:
 | App kinds | Web apps only in v1. Workers and multi-container stacks are deferred, but the manifest carries `schemaVersion` and `kind` so they can be added later without breaking v1 parsers. |
 | Installed-app lifecycle | Catalog values seed new installs. Existing apps change only through an explicit `oma catalog apply` operation. No silent re-resolution on deploy or update. |
 
-These decisions remove the largest implementation forks. The catalog still needs a short shaping pass for:
+The remaining catalog details are resolved in the shaping document:
 
-1. Environment form depth: text and secret fields only, or typed fields such as number, boolean, and select.
-2. `catalog apply` conflict UX: preview and confirmation behavior, and which fields are allowed to change.
-3. Override semantics: whole-entry replacement versus field-level patches, and how to disable a built-in entry.
-4. Schema version policy: rejection rules and migration expectations for `schemaVersion` bumps.
-5. Version and update policy: whether manifests pin tags, digests, or both, and how that interacts with auto-update.
+| Detail | Selected behavior |
+| --- | --- |
+| Env form depth | Text and secret fields, optional defaults, required markers, generated values. Typed fields deferred. |
+| `catalog apply` UX | Field diff, confirmation or `--yes`, defined field subset, env and secrets not overwritten. |
+| Override and disable | Whole-entry replacement by `id`; `disabled: true` hides a built-in. |
+| Schema policy | Required `schemaVersion`; reject newer versions and unknown kinds. |
+| Image version policy | Tags or digests; auto-update only for tag-based images. |
+
+Artifacts:
+
+- [`docs/catalog/shaping.md`](catalog/shaping.md): requirements, shapes, fit check, selected parts, breadboard.
+- [`docs/catalog/slices.md`](catalog/slices.md): V1–V5 slices, sliced breadboard, acceptance criteria.
 
 Note that the common case described for Oma is Rails backends serving mobile apps and Hotwire Native clients. Those are ordinary web apps and fit the v1 contract; workers and sidecars are an extension, not a prerequisite.
 
 #### 3.1.1 Manifest format
 
-Use YAML for authoring and JSON for the installed/remote catalog. Schema:
+Use YAML for authoring and JSON for the installer route. Schema:
 
 ```yaml
 schemaVersion: 1
