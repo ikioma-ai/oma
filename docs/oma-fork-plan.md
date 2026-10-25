@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 1 complete; Phase 2 shaped and sliced, implementation next
+Status: Phase 1 complete; Phase 2 in progress (V1 catalog read path complete, V2 next)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -553,6 +553,10 @@ Exit criteria:
 - `oma` on first run uses the Oma state directory. Code path verified by unit tests; interactive first run not exercised.
 
 ### Phase 2: Catalog
+
+Status: V1 (catalog read path) complete; V2 (deploy contract) next.
+
+V1 delivered the manifest schema and validation, embedded built-in manifests, the local user catalog loader and merge, `oma catalog list/show/validate`, and the TUI app list backed by the merged catalog.
 
 1. Add `internal/catalog`.
 2. Add the manifest schema and validation, including `schemaVersion` and `kind: web`.

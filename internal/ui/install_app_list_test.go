@@ -1,8 +1,11 @@
 package ui
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,9 +66,31 @@ func TestInstallAppList_View(t *testing.T) {
 
 	assert.Contains(t, view, "Choose an application")
 	assert.Contains(t, view, "Campfire")
+	assert.Contains(t, view, "Group chat for teams")
+	assert.Contains(t, view, "Communication")
+	assert.Contains(t, view, "builtin")
 	assert.Contains(t, view, "Fizzy")
 	assert.Contains(t, view, "Writebook")
 	assert.Contains(t, view, "Custom Docker image")
+}
+
+func TestInstallAppList_WarnsAboutInvalidCatalogEntry(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	appDir := filepath.Join(dir, "oma", "apps")
+	require.NoError(t, os.MkdirAll(appDir, 0o755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(appDir, "bad.yaml"),
+		[]byte("schemaVersion: 1\nid: badapp\nkind: worker\n"),
+		0o644,
+	))
+
+	list := NewInstallAppList()
+	view := ansi.Strip(list.View())
+
+	assert.Contains(t, view, "catalog entry skipped")
+	assert.Contains(t, view, "Campfire")
 }
 
 func TestExpandAlias(t *testing.T) {

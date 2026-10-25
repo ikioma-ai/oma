@@ -42,6 +42,7 @@ func NewRootCommand() *RootCommand {
 
 	r.cmd.AddCommand(newBackgroundCommand().cmd)
 	r.cmd.AddCommand(newBackupCommand().cmd)
+	r.cmd.AddCommand(newCatalogCommand().cmd)
 	r.cmd.AddCommand(newDeployCommand().cmd)
 	r.cmd.AddCommand(newExecCommand().cmd)
 	r.cmd.AddCommand(newKeysCommand().cmd)

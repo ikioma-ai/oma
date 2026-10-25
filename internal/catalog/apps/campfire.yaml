@@ -1,0 +1,21 @@
+schemaVersion: 1
+kind: web
+id: campfire
+name: Campfire
+description: Group chat for teams
+category: Communication
+image: ghcr.io/basecamp/once-campfire
+hostname: chat.example.com
+web:
+  port: 80
+  healthPath: /up
+  healthTimeout: 5s
+  tls: auto
+  verify: true
+storage:
+  - name: data
+    path: /storage
+    backup: true
+    primary: true
+  - name: data
+    path: /rails/storage

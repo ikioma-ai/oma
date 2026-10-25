@@ -1,23 +1,17 @@
 package ui
 
 import (
+	"fmt"
+	"log/slog"
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+
+	"github.com/ikioma-ai/oma/internal/catalog"
 )
 
 const installAppListOtherKey = -1
-
-type KnownApp struct {
-	Name     string
-	Alias    string
-	ImageRef string
-}
-
-var knownApps = []KnownApp{
-	{Name: "Campfire", Alias: "campfire", ImageRef: "ghcr.io/basecamp/once-campfire"},
-	{Name: "Fizzy", Alias: "fizzy", ImageRef: "ghcr.io/basecamp/fizzy"},
-	{Name: "Writebook", Alias: "writebook", ImageRef: "ghcr.io/basecamp/writebook"},
-}
 
 type (
 	InstallAppSelectedMsg    struct{ ImageRef string }
@@ -25,17 +19,30 @@ type (
 )
 
 type InstallAppList struct {
-	menu Menu
+	menu   Menu
+	apps   []catalog.Entry
+	issues []catalog.Issue
 }
 
 func NewInstallAppList() InstallAppList {
-	items := make([]MenuItem, 0, len(knownApps)+1)
-	for i, app := range knownApps {
-		items = append(items, MenuItem{Label: app.Name, Key: i})
+	store, err := catalog.Load()
+	if err != nil {
+		slog.Error("Failed to load app catalog", "error", err)
+		store = catalog.Empty()
+	}
+
+	apps := store.List()
+	items := make([]MenuItem, 0, len(apps)+1)
+	for i, app := range apps {
+		items = append(items, MenuItem{Label: appLabel(app), Key: i})
 	}
 	items = append(items, MenuItem{Label: "Custom Docker image", Key: installAppListOtherKey})
 
-	return InstallAppList{menu: NewMenu(items...)}
+	return InstallAppList{
+		menu:   NewMenu(items...),
+		apps:   apps,
+		issues: store.Issues(),
+	}
 }
 
 func (m InstallAppList) Init() tea.Cmd {
@@ -48,8 +55,11 @@ func (m InstallAppList) Update(msg tea.Msg) (InstallAppList, tea.Cmd) {
 		if msg.Key == installAppListOtherKey {
 			return m, func() tea.Msg { return InstallCustomSelectedMsg{} }
 		}
-		app := knownApps[msg.Key]
-		return m, func() tea.Msg { return InstallAppSelectedMsg{ImageRef: app.ImageRef} }
+		if msg.Key < 0 || msg.Key >= len(m.apps) {
+			return m, nil
+		}
+		app := m.apps[msg.Key]
+		return m, func() tea.Msg { return InstallAppSelectedMsg{ImageRef: app.Image} }
 	}
 
 	var cmd tea.Cmd
@@ -74,16 +84,32 @@ func (m InstallAppList) View() string {
 
 	content := lipgloss.JoinVertical(lipgloss.Left, title, menuView)
 
+	if len(m.issues) > 0 {
+		warning := lipgloss.NewStyle().
+			Foreground(Colors.Error).
+			Render(fmt.Sprintf("%d catalog entry skipped; run `oma catalog validate` for details", len(m.issues)))
+		content = lipgloss.JoinVertical(lipgloss.Left, content, "", warning)
+	}
+
 	return boxStyle.Render(content)
 }
 
 // Helpers
 
+func appLabel(app catalog.Entry) string {
+	return strings.Join([]string{app.Name, app.Description, app.Category, string(app.Source)}, " · ")
+}
+
 func expandAlias(s string) (string, bool) {
-	for _, app := range knownApps {
-		if s == app.Alias {
-			return app.ImageRef, true
-		}
+	store, err := catalog.Load()
+	if err != nil {
+		return s, false
 	}
-	return s, false
+
+	entry, ok := store.Get(s)
+	if !ok {
+		return s, false
+	}
+
+	return entry.Image, true
 }

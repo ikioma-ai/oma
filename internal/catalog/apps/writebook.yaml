@@ -1,0 +1,21 @@
+schemaVersion: 1
+kind: web
+id: writebook
+name: Writebook
+description: Publish books from Markdown
+category: Publishing
+image: ghcr.io/basecamp/writebook
+hostname: books.example.com
+web:
+  port: 80
+  healthPath: /up
+  healthTimeout: 5s
+  tls: auto
+  verify: true
+storage:
+  - name: data
+    path: /storage
+    backup: true
+    primary: true
+  - name: data
+    path: /rails/storage

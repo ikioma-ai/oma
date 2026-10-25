@@ -1,0 +1,21 @@
+schemaVersion: 1
+kind: web
+id: fizzy
+name: Fizzy
+description: Project boards and issue tracking
+category: Productivity
+image: ghcr.io/basecamp/fizzy
+hostname: fizzy.example.com
+web:
+  port: 80
+  healthPath: /up
+  healthTimeout: 5s
+  tls: auto
+  verify: true
+storage:
+  - name: data
+    path: /storage
+    backup: true
+    primary: true
+  - name: data
+    path: /rails/storage
