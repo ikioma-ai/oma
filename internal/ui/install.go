@@ -11,7 +11,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/basecamp/once/internal/docker"
+	"github.com/ikioma-ai/oma/internal/brand"
+	"github.com/ikioma-ai/oma/internal/docker"
 )
 
 var installKeys = struct {
@@ -375,7 +376,7 @@ func (m Install) imageErrorState() installState {
 }
 
 func (m Install) showLogo() bool {
-	return len(m.namespace.Applications()) == 0 && os.Getenv("ONCE_REDUCED_MOTION") != "true"
+	return len(m.namespace.Applications()) == 0 && os.Getenv(brand.ReducedMotionEnv) != "true"
 }
 
 func (m Install) middleHeight() int {
@@ -512,7 +513,7 @@ If you're installing an application on the Internet, this should use a domain na
 
 For example, if you own example.com and are installing Campfire, you might choose chat.example.com as your hostname.
 
-When you use your own domain on a publicly-reachable server, ONCE will set up SSL automatically to secure your application.
+When you use your own domain on a publicly-reachable server, Oma will set up SSL automatically to secure your application.
 
 If you're installing only on your local machine, you can use a localhost domain instead. You can still use a subdomain to support multiple applications (like chat.localhost). When you install an application in this way, it won't get the automatic SSL.
 

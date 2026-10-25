@@ -8,11 +8,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
 const (
 	launchdDir  = "/Library/LaunchDaemons"
-	labelPrefix = "com.basecamp."
+	labelPrefix = brand.ServicePrefix
 )
 
 const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>

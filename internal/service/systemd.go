@@ -13,7 +13,7 @@ import (
 const systemdUnitDir = "/etc/systemd/system"
 
 const unitTemplate = `[Unit]
-Description=Once background tasks (%s)
+Description=Oma background tasks (%s)
 After=network.target docker.service
 
 [Service]

@@ -1,25 +1,25 @@
 #!/bin/sh
 set -eu
 
-REPO='basecamp/once'
+REPO='ikioma-ai/oma'
 INSTALL_DIR='/usr/local/bin'
 IMAGE_REF='{{ .ImageRef }}'
 RELEASE_JSON=''
-ONCE_BIN=''
+OMA_BIN=''
 
 main() {
   os=$(detect_os)
   arch=$(detect_arch)
   ensure_docker "$os"
   fetch_latest_release
-  install_once "$arch"
+  install_oma "$arch"
 
-  if [ "${ONCE_INTERACTIVE:-}" = "false" ]; then
-    echo "once is installed. Run 'once' to get started."
+  if [ "${OMA_INTERACTIVE:-}" = "false" ]; then
+    echo "Oma is installed. Run 'oma' to get started."
     return
   fi
 
-  run_once
+  run_oma
 }
 
 detect_os() {
@@ -83,19 +83,19 @@ ensure_docker() {
   DOCKER_MODE=sg
 }
 
-install_once() {
+install_oma() {
   arch="$1"
 
-  if command -v once >/dev/null 2>&1; then
-    ONCE_BIN=$(command -v once)
-    echo "once is already installed at ${ONCE_BIN}"
+  if command -v oma >/dev/null 2>&1; then
+    OMA_BIN=$(command -v oma)
+    echo "Oma is already installed at ${OMA_BIN}"
     return
   fi
 
   version=$(latest_version)
-  echo "Installing once ${version}..."
+  echo "Installing Oma ${version}..."
 
-  binary="once-${os}-${arch}"
+  binary="oma-${os}-${arch}"
   asset_url=$(get_asset_url "$binary")
 
   if [ -z "$asset_url" ]; then
@@ -107,24 +107,24 @@ install_once() {
   download "$asset_url" "$tmpfile" "application/octet-stream"
 
   if is_root; then
-    install -m 755 "$tmpfile" "${INSTALL_DIR}/once"
+    install -m 755 "$tmpfile" "${INSTALL_DIR}/oma"
   else
-    sudo install -m 755 "$tmpfile" "${INSTALL_DIR}/once"
+    sudo install -m 755 "$tmpfile" "${INSTALL_DIR}/oma"
   fi
   rm -f "$tmpfile"
 
-  ONCE_BIN="${INSTALL_DIR}/once"
-  echo "Installed once to ${ONCE_BIN}"
+  OMA_BIN="${INSTALL_DIR}/oma"
+  echo "Installed Oma to ${OMA_BIN}"
 
   echo "Installing background service..."
   if is_root; then
-    "${ONCE_BIN}" background install
+    "${OMA_BIN}" background install
   else
-    sudo "${ONCE_BIN}" background install
+    sudo "${OMA_BIN}" background install
   fi
 }
 
-run_once() {
+run_oma() {
   install_flag=""
   if [ -n "$IMAGE_REF" ]; then
     install_flag="--install=${IMAGE_REF}"
@@ -132,13 +132,13 @@ run_once() {
 
   case "$DOCKER_MODE" in
   normal)
-    exec "${ONCE_BIN}" ${install_flag} </dev/tty
+    exec "${OMA_BIN}" ${install_flag} </dev/tty
     ;;
   sudo)
-    exec sudo "${ONCE_BIN}" ${install_flag} </dev/tty
+    exec sudo "${OMA_BIN}" ${install_flag} </dev/tty
     ;;
   sg)
-    sg docker -c "${ONCE_BIN} ${install_flag}" </dev/tty
+    sg docker -c "${OMA_BIN} ${install_flag}" </dev/tty
     ;;
   esac
 }

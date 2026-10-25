@@ -40,5 +40,5 @@ jobs:
         context: integration/testapp
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          ghcr.io/basecamp/once-integration-app:latest
-          ghcr.io/basecamp/once-integration-app:sha-${{ github.sha }}
+          ghcr.io/ikioma-ai/oma-integration-app:latest
+          ghcr.io/ikioma-ai/oma-integration-app:sha-${{ github.sha }}

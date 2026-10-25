@@ -7,9 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/basecamp/once/internal/docker"
-	"github.com/basecamp/once/internal/logging"
-	"github.com/basecamp/once/internal/ui"
+	"github.com/ikioma-ai/oma/internal/brand"
+	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/logging"
+	"github.com/ikioma-ai/oma/internal/ui"
 )
 
 type RootCommand struct {
@@ -22,7 +23,7 @@ type RootCommand struct {
 func NewRootCommand() *RootCommand {
 	r := &RootCommand{}
 	r.cmd = &cobra.Command{
-		Use:           "once",
+		Use:           brand.Name,
 		Short:         "Manage web applications from Docker images",
 		SilenceUsage:  true,
 		SilenceErrors: true,

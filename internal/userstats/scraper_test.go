@@ -11,7 +11,7 @@ import (
 )
 
 func TestProcessLine(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 
 	line := mustMarshal(t, logEntry{
 		Time:       time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
@@ -33,7 +33,7 @@ func TestProcessLine(t *testing.T) {
 }
 
 func TestProcessLineSkipsIncomplete(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 
 	// Missing service
 	s.processLine(mustMarshal(t, logEntry{
@@ -54,7 +54,7 @@ func TestProcessLineSkipsIncomplete(t *testing.T) {
 }
 
 func TestProcessLineSkipsHealthCheck(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 	ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	s.processLine(mustMarshal(t, logEntry{Time: ts, RemoteAddr: "1.2.3.4", Service: "campfire", Path: "/up"}))
@@ -63,7 +63,7 @@ func TestProcessLineSkipsHealthCheck(t *testing.T) {
 }
 
 func TestProcessLineSkipsLoopback(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 	ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	s.processLine(mustMarshal(t, logEntry{Time: ts, RemoteAddr: "127.0.0.1", Service: "campfire"}))
@@ -73,7 +73,7 @@ func TestProcessLineSkipsLoopback(t *testing.T) {
 }
 
 func TestProcessLineHandlesXFF(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 	ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	s.processLine(mustMarshal(t, logEntry{Time: ts, RemoteAddr: "1.2.3.4, 5.6.7.8", Service: "campfire"}))
@@ -92,7 +92,7 @@ func TestProcessLineHandlesXFF(t *testing.T) {
 }
 
 func TestProcessLineUniqueUsers(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 	ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	addEntry := func(ip string) {
@@ -115,7 +115,7 @@ func TestProcessLineUniqueUsers(t *testing.T) {
 }
 
 func TestProcessLineMultipleServices(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 	ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	s.processLine(mustMarshal(t, logEntry{Time: ts, RemoteAddr: "1.1.1.1", Service: "campfire"}))
@@ -126,7 +126,7 @@ func TestProcessLineMultipleServices(t *testing.T) {
 }
 
 func TestBucketCircularOverwrite(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 
 	baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	baseHour := baseTime.Unix() / 3600
@@ -159,7 +159,7 @@ func TestBucketCircularOverwrite(t *testing.T) {
 }
 
 func TestSyncLiveToStore(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 	ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	s.processLine(mustMarshal(t, logEntry{Time: ts, RemoteAddr: "1.1.1.1", Service: "campfire"}))
@@ -183,7 +183,7 @@ func TestSyncLiveToStore(t *testing.T) {
 }
 
 func TestLastTimestampTracking(t *testing.T) {
-	s := NewScraper("once")
+	s := NewScraper("oma")
 
 	t1 := time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC)
 	t2 := time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC)

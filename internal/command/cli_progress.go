@@ -7,8 +7,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/basecamp/once/internal/docker"
-	"github.com/basecamp/once/internal/ui"
+	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/ui"
 )
 
 type cliProgress struct {

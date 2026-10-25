@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: accepted; fork initialized at the repository root
+Status: Phase 1 complete; Phase 2 next
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -35,7 +35,10 @@ Current baseline, recorded 2026-10-25:
   - With the default macOS long temp path, `TestConnectionError` fails because the generated unix socket path exceeds the platform limit.
   - These are upstream test-environment defects, not regressions from the move.
 - Docker 29.4.0 is available. The integration suite has not been run yet.
-- `docs/oma-fork-plan.md` is currently untracked and should be included in the first fork commit.
+- `docs/oma-fork-plan.md` was committed as `af70667` before the rename.
+- After the Phase 1 rename: `go build ./...`, `go vet ./...`, `go test ./internal/...`, the installer module build/tests, `make build`, and `make dist` all pass.
+- `make dist` produces `oma-linux-amd64`, `oma-linux-arm64`, `oma-darwin-amd64`, `oma-darwin-arm64`, and `checksums.txt`.
+- `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder install host; it must be replaced before deploying the installer.
 
 ---
 
@@ -455,22 +458,41 @@ Exit criteria:
 
 ### Phase 1: Hard rename
 
-Do this in one reviewable commit.
+Status: complete.
 
-1. Rename the module path and all imports.
-2. Rename the binary and command paths.
-3. Replace repository, installer host, image namespaces, service labels, state directories, and user-visible product strings.
-4. Centralize new branding in `internal/brand`.
-5. Update license headers and add a modification notice while retaining the MIT notice.
-6. Update GitHub workflows, Kamal config, installer image references, and release asset names.
+1. [x] Rename the module path and all imports.
+2. [x] Rename the binary and command paths.
+3. [x] Replace repository, image namespaces, service labels, state directories, and user-visible product strings.
+   - Installer deployment hosts remain a configuration decision; `get.oma.example` is a placeholder, not a live domain.
+4. [x] Centralize new branding in `internal/brand`.
+5. [x] Update the license and add a modification notice while retaining the MIT notice.
+6. [x] Update GitHub workflows, Kamal config, installer image references, and release asset names.
+
+Applied identifiers:
+
+| Item | Value |
+| --- | --- |
+| Go module | `github.com/ikioma-ai/oma` |
+| Binary | `oma` |
+| Default namespace | `oma` |
+| Docker label | `oma` |
+| State file | `oma-state.json` |
+| Backup entries | `oma.application.json`, `oma.volume.json` |
+| Log file | `oma.log` |
+| Log/state directory | `~/.local/state/oma` |
+| Env prefix | `OMA_` |
+| Linux service | `oma-background.service` |
+| launchd label | `com.ikioma.oma-background` |
+| Release assets | `oma-<os>-<arch>` |
+| Integration image | `ghcr.io/ikioma-ai/oma-integration-app` |
 
 Exit criteria:
 
-- `go build ./...` succeeds.
-- Tests pass.
-- `oma version` reports the Oma version.
-- `oma background install` installs an Oma-named service.
-- `oma` on first run uses the Oma state directory.
+- `go build ./...` succeeds. Verified.
+- Tests pass. Verified with `TZ=UTC` and a short temp directory.
+- `oma version` reports the Oma version. Verified.
+- `oma background install` installs an Oma-named service. Not run; requires root and writes system service files.
+- `oma` on first run uses the Oma state directory. Code path verified by unit tests; interactive first run not exercised.
 
 ### Phase 2: Catalog
 
@@ -590,7 +612,7 @@ Exit criteria:
 4. Catalog trust: embedded only, trusted URL, or signed manifests.
 5. Windows support: WSL2 only, or a native build and installer.
 6. Proxy image: continue using `basecamp/kamal-proxy` or publish a pinned Oma image.
-7. Branding: final install host, GitHub organization, and license/notice wording.
+7. Branding: final install host. `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder. The GitHub organization is `ikioma-ai`, and the modification notice uses "the Oma authors".
 
 ---
 

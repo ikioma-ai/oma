@@ -5,7 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/basecamp/once/internal/fsutil"
+	"github.com/ikioma-ai/oma/internal/brand"
+	"github.com/ikioma-ai/oma/internal/fsutil"
 )
 
 // ToLogFile switches logging to a file for the duration of fn, then restores
@@ -17,7 +18,7 @@ func ToLogFile(fn func() error) error {
 		return fn()
 	}
 
-	path := filepath.Join(dir, "once.log")
+	path := filepath.Join(dir, brand.Name+".log")
 	file, err := fsutil.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		slog.Warn("Could not open log file", "error", err)
@@ -42,7 +43,7 @@ func SetupStderr() {
 
 func stateDir() (string, error) {
 	if dir := os.Getenv("XDG_STATE_HOME"); dir != "" {
-		return filepath.Join(dir, "once"), nil
+		return filepath.Join(dir, brand.Name), nil
 	}
 
 	home, err := os.UserHomeDir()
@@ -50,5 +51,5 @@ func stateDir() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(home, ".local", "state", "once"), nil
+	return filepath.Join(home, ".local", "state", brand.Name), nil
 }

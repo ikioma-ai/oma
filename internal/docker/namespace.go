@@ -13,9 +13,11 @@ import (
 
 	"github.com/containerd/errdefs"
 	"github.com/moby/moby/client"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
-const DefaultNamespace = "once"
+const DefaultNamespace = brand.Name
 
 var ErrInvalidNamespace = errors.New("invalid namespace: must contain only lowercase letters, digits, and hyphens, and must not start with a hyphen")
 

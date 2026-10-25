@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/basecamp/once/internal/docker"
+	"github.com/ikioma-ai/oma/internal/docker"
 )
 
 type settingsFlags struct {

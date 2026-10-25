@@ -10,12 +10,13 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
 
-	"github.com/basecamp/once/internal/docker"
-	"github.com/basecamp/once/internal/metrics"
-	"github.com/basecamp/once/internal/mouse"
-	"github.com/basecamp/once/internal/system"
-	"github.com/basecamp/once/internal/userstats"
-	"github.com/basecamp/once/internal/version"
+	"github.com/ikioma-ai/oma/internal/brand"
+	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/metrics"
+	"github.com/ikioma-ai/oma/internal/mouse"
+	"github.com/ikioma-ai/oma/internal/system"
+	"github.com/ikioma-ai/oma/internal/userstats"
+	"github.com/ikioma-ai/oma/internal/version"
 )
 
 var appKeys = struct {
@@ -266,8 +267,8 @@ func (m *App) View() tea.View {
 }
 
 func Run(ns *docker.Namespace, installImageRef string) error {
-	slog.Info("Starting ONCE UI", "version", version.Version)
-	defer func() { slog.Info("Stopping ONCE UI") }()
+	slog.Info("Starting "+brand.DisplayName+" UI", "version", version.Version)
+	defer func() { slog.Info("Stopping " + brand.DisplayName + " UI") }()
 
 	detected := DetectTerminalColors(100 * time.Millisecond)
 	ApplyPalette(NewPalette(detected))

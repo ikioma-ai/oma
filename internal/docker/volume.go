@@ -8,6 +8,8 @@ import (
 
 	"github.com/containerd/errdefs"
 	"github.com/moby/moby/client"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
 var ErrVolumeNotFound = errors.New("volume not found")
@@ -59,7 +61,7 @@ func FindVolume(ctx context.Context, ns *Namespace, name string) (*ApplicationVo
 
 	label := vol.Volume.Labels[labelKey]
 	if label == "" {
-		return nil, fmt.Errorf("volume %s exists but has no once label", volumeName)
+		return nil, fmt.Errorf("volume %s exists but has no %s label", volumeName, brand.Name)
 	}
 
 	settings, err := UnmarshalApplicationLegacyVolumeSettings(label)

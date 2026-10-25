@@ -16,16 +16,18 @@ import (
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
 const (
 	ProxyImage = "basecamp/kamal-proxy:once-01"
-	labelKey   = "once"
+	labelKey   = brand.Name
 )
 
 const (
 	stateFileDir  = "/home/kamal-proxy/.config/kamal-proxy"
-	stateFileName = "once-state.json"
+	stateFileName = brand.Name + "-state.json"
 	stateFilePath = stateFileDir + "/" + stateFileName
 )
 

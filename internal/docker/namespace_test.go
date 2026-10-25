@@ -88,18 +88,18 @@ func TestNewApplicationDoesNotAffectNamespace(t *testing.T) {
 }
 
 func TestContainerAppName(t *testing.T) {
-	ns := &Namespace{name: "once"}
+	ns := &Namespace{name: "oma"}
 
 	t.Run("standard app", func(t *testing.T) {
-		assert.Equal(t, "campfire", ns.containerAppName("once-app-campfire-a1b2c3"))
+		assert.Equal(t, "campfire", ns.containerAppName("oma-app-campfire-a1b2c3"))
 	})
 
 	t.Run("dotted unique name", func(t *testing.T) {
-		assert.Equal(t, "campfire.a1b2c3", ns.containerAppName("once-app-campfire.a1b2c3-d4e5f6"))
+		assert.Equal(t, "campfire.a1b2c3", ns.containerAppName("oma-app-campfire.a1b2c3-d4e5f6"))
 	})
 
 	t.Run("dashed app name", func(t *testing.T) {
-		assert.Equal(t, "my-app", ns.containerAppName("once-app-my-app-abcdef"))
+		assert.Equal(t, "my-app", ns.containerAppName("oma-app-my-app-abcdef"))
 	})
 
 	t.Run("wrong namespace", func(t *testing.T) {
@@ -111,6 +111,6 @@ func TestContainerAppName(t *testing.T) {
 	})
 
 	t.Run("no ID suffix", func(t *testing.T) {
-		assert.Equal(t, "", ns.containerAppName("once-app-campfire"))
+		assert.Equal(t, "", ns.containerAppName("oma-app-campfire"))
 	})
 }

@@ -1,4 +1,4 @@
-module github.com/basecamp/once-installer
+module github.com/ikioma-ai/oma-installer
 
 go 1.27.0
 

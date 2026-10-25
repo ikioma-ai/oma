@@ -1,4 +1,4 @@
-module github.com/basecamp/once
+module github.com/ikioma-ai/oma
 
 go 1.27.0
 

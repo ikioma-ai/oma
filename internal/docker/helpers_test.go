@@ -20,9 +20,9 @@ func TestIsLocalhost(t *testing.T) {
 }
 
 func TestCutLast(t *testing.T) {
-	before, after, found := cutLast("once-app-myapp-abc123", "-")
+	before, after, found := cutLast("oma-app-myapp-abc123", "-")
 	assert.True(t, found)
-	assert.Equal(t, "once-app-myapp", before)
+	assert.Equal(t, "oma-app-myapp", before)
 	assert.Equal(t, "abc123", after)
 
 	before, after, found = cutLast("nosep", "-")

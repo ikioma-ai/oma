@@ -7,9 +7,9 @@ import (
 )
 
 func TestProxyContainerName(t *testing.T) {
-	ns := &Namespace{name: "once"}
+	ns := &Namespace{name: "oma"}
 	proxy := NewProxy(ns)
-	assert.Equal(t, "once-proxy", proxy.containerName())
+	assert.Equal(t, "oma-proxy", proxy.containerName())
 
 	ns2 := &Namespace{name: "staging"}
 	proxy2 := NewProxy(ns2)

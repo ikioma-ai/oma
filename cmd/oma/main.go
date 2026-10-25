@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/basecamp/once/internal/command"
-	"github.com/basecamp/once/internal/docker"
-	"github.com/basecamp/once/internal/logging"
+	"github.com/ikioma-ai/oma/internal/command"
+	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/logging"
 )
 
 func main() {

@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/basecamp/once/internal/docker"
-	"github.com/basecamp/once/internal/metrics"
-	"github.com/basecamp/once/internal/system"
+	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/metrics"
+	"github.com/ikioma-ai/oma/internal/system"
 )
 
 func TestFormatDuration(t *testing.T) {
@@ -199,7 +199,7 @@ func TestDashboard_SelectPanelAfterAppsRemoved(t *testing.T) {
 	d.updateViewportSize()
 	d.rebuildViewportContent()
 
-	// Simulate all apps disappearing (e.g. `once teardown` in another shell).
+	// Simulate all apps disappearing (e.g. `oma teardown` in another shell).
 	d.apps = nil
 	d.buildPanels()
 

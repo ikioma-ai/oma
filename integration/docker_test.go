@@ -32,11 +32,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/basecamp/once/internal/command"
-	"github.com/basecamp/once/internal/docker"
+	"github.com/ikioma-ai/oma/internal/command"
+	"github.com/ikioma-ai/oma/internal/docker"
 )
 
-const integrationAppImageRef = "ghcr.io/basecamp/once-integration-app:latest"
+const integrationAppImageRef = "ghcr.io/ikioma-ai/oma-integration-app:latest"
 
 const (
 	testRegistryUsername = "registry-user"
@@ -65,7 +65,7 @@ func TestDockerDeployment(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-test")
+	ns := newTestNamespace(t, "oma-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -89,7 +89,7 @@ func TestRestoreState(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns1 := newTestNamespace(t, "once-restore-test")
+	ns1 := newTestNamespace(t, "oma-restore-test")
 
 	require.NoError(t, ns1.EnsureNetwork(ctx))
 
@@ -120,7 +120,7 @@ func TestRestoreAdoptsLegacyVolumeKeys(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-legacy-keys-test")
+	ns := newTestNamespace(t, "oma-legacy-keys-test")
 
 	legacyKeys := docker.Keys{
 		SecretKeyBase:   "legacy-secret",
@@ -150,7 +150,7 @@ func TestRestoreAdoptsLegacyVolumeKeys(t *testing.T) {
 		Name: ns.Name() + "-app-legacyapp-abc123",
 		Config: &container.Config{
 			Image:  settings.Image,
-			Labels: map[string]string{"once": settings.Marshal()},
+			Labels: map[string]string{"oma": settings.Marshal()},
 		},
 	})
 	require.NoError(t, err)
@@ -172,7 +172,7 @@ func TestApplicationVolume(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-volume-label-test")
+	ns := newTestNamespace(t, "oma-volume-label-test")
 
 	vol1, err := docker.CreateVolume(ctx, ns, "testapp", docker.ApplicationLegacyVolumeSettings{SecretKeyBase: "test-secret"})
 	require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestGaplessDeployment(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-gapless-test")
+	ns := newTestNamespace(t, "oma-gapless-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -236,7 +236,7 @@ func TestUpdateDetectsLocalImageChange(t *testing.T) {
 
 	buildAndPushImage(t, ctx, imageTag, "v1")
 
-	ns := newTestNamespace(t, "once-update-test")
+	ns := newTestNamespace(t, "oma-update-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -274,7 +274,7 @@ func TestDeployWithRegistryCredentials(t *testing.T) {
 	pushToRegistry(t, ctx, imageRef, baseImage(t, ctx),
 		remote.WithAuth(&authn.Basic{Username: testRegistryUsername, Password: testRegistryPassword}))
 
-	ns := newTestNamespace(t, "once-registry-auth-test")
+	ns := newTestNamespace(t, "oma-registry-auth-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -310,7 +310,7 @@ func TestLargeLabelData(t *testing.T) {
 
 	largeValue := strings.Repeat("x", 64*1024) // 64KB
 
-	ns := newTestNamespace(t, "once-large-label-test")
+	ns := newTestNamespace(t, "oma-large-label-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -338,7 +338,7 @@ func TestStartStop(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-startstop-test")
+	ns := newTestNamespace(t, "oma-startstop-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -367,7 +367,7 @@ func TestExec(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-exec-test")
+	ns := newTestNamespace(t, "oma-exec-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -393,7 +393,7 @@ func TestExecFailsWhenNotRunning(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-exec-stopped-test")
+	ns := newTestNamespace(t, "oma-exec-stopped-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -421,7 +421,7 @@ func TestLongAppName(t *testing.T) {
 	// This test verifies that long app names work correctly.
 	longName := strings.Repeat("x", 200)
 
-	ns := newTestNamespace(t, "once-long-name-test")
+	ns := newTestNamespace(t, "oma-long-name-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -446,7 +446,7 @@ func TestContainerLogConfig(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-logconfig-test")
+	ns := newTestNamespace(t, "oma-logconfig-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -470,7 +470,7 @@ func TestBackup(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-backup-test")
+	ns := newTestNamespace(t, "oma-backup-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -499,14 +499,14 @@ func TestBackup(t *testing.T) {
 
 	entries := extractTarGz(t, backupFile)
 
-	assert.Contains(t, entries, "once.application.json")
+	assert.Contains(t, entries, "oma.application.json")
 	var appSettings docker.ApplicationSettings
-	require.NoError(t, json.Unmarshal(entries["once.application.json"], &appSettings))
+	require.NoError(t, json.Unmarshal(entries["oma.application.json"], &appSettings))
 	assert.Equal(t, "backupapp", appSettings.Name)
 	assert.Equal(t, imageName, appSettings.Image)
 	assert.NotEmpty(t, appSettings.Keys.SecretKeyBase)
 
-	assert.Contains(t, entries, "once.volume.json")
+	assert.Contains(t, entries, "oma.volume.json")
 
 	assert.Contains(t, entries, "data/testfile.txt")
 	assert.Equal(t, "test content\n", string(entries["data/testfile.txt"]))
@@ -519,7 +519,7 @@ func TestRestore(t *testing.T) {
 	defer cancel()
 
 	// Create and backup an app
-	ns1 := newTestNamespace(t, "once-restore-src")
+	ns1 := newTestNamespace(t, "oma-restore-src")
 
 	require.NoError(t, ns1.EnsureNetwork(ctx))
 	require.NoError(t, ns1.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -545,7 +545,7 @@ func TestRestore(t *testing.T) {
 	require.NoError(t, app.BackupToFile(ctx, backupDir, "backup.tar.gz"))
 
 	// Restore to a different namespace
-	ns2 := newTestNamespace(t, "once-restore-dst")
+	ns2 := newTestNamespace(t, "oma-restore-dst")
 
 	require.NoError(t, ns2.EnsureNetwork(ctx))
 	require.NoError(t, ns2.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -597,7 +597,7 @@ func TestRestoreHostnameConflictFails(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-restore-host-test")
+	ns := newTestNamespace(t, "oma-restore-host-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -627,7 +627,7 @@ func TestBackupHookBehavior(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-backup-hook-test")
+	ns := newTestNamespace(t, "oma-backup-hook-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -677,7 +677,7 @@ func TestBackupStoppedContainer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-backup-stopped-test")
+	ns := newTestNamespace(t, "oma-backup-stopped-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -711,8 +711,8 @@ func TestBackupStoppedContainer(t *testing.T) {
 
 	entries := extractTarGz(t, backupFile)
 
-	assert.Contains(t, entries, "once.application.json")
-	assert.Contains(t, entries, "once.volume.json")
+	assert.Contains(t, entries, "oma.application.json")
+	assert.Contains(t, entries, "oma.volume.json")
 	assert.Contains(t, entries, "data/testfile.txt")
 	assert.Equal(t, "stopped test content\n", string(entries["data/testfile.txt"]))
 }
@@ -728,7 +728,7 @@ func TestRestoreWithPostRestoreHook(t *testing.T) {
 
 	backup := buildTestBackup(t, hookImage)
 
-	ns := newTestNamespace(t, "once-restore-hook-test")
+	ns := newTestNamespace(t, "oma-restore-hook-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -754,7 +754,7 @@ func TestRestoreFailsWithFailedPostRestoreHook(t *testing.T) {
 
 	backup := buildTestBackup(t, hookImage)
 
-	ns := newTestNamespace(t, "once-restore-hook-fail-test")
+	ns := newTestNamespace(t, "oma-restore-hook-fail-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -770,7 +770,7 @@ func TestRemoveApplication(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-remove-test")
+	ns := newTestNamespace(t, "oma-remove-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -798,7 +798,7 @@ func TestVerifyHTTPOrRemoveAllowsRedeployWithSameHost(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-verify-redeploy-test")
+	ns := newTestNamespace(t, "oma-verify-redeploy-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -828,7 +828,7 @@ func TestRemoveApplicationWithData(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-removedata-test")
+	ns := newTestNamespace(t, "oma-removedata-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -856,7 +856,7 @@ func TestDeployWithSettings(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-settings-test")
+	ns := newTestNamespace(t, "oma-settings-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -914,7 +914,7 @@ func TestUpdatePreservesSettings(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-update-test")
+	ns := newTestNamespace(t, "oma-update-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -971,7 +971,7 @@ func TestUpdateSettings(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-update-settings-test")
+	ns := newTestNamespace(t, "oma-update-settings-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -1009,7 +1009,7 @@ func TestUpdateChangeHost(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-update-host-test")
+	ns := newTestNamespace(t, "oma-update-host-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -1035,7 +1035,7 @@ func TestUpdateHostCollision(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-update-collision-test")
+	ns := newTestNamespace(t, "oma-update-collision-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -1064,7 +1064,7 @@ func TestContainerResources(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-res-test")
+	ns := newTestNamespace(t, "oma-res-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
@@ -1449,8 +1449,8 @@ func buildTestBackup(t *testing.T, imageName string) []byte {
 		require.NoError(t, err)
 	}
 
-	writeEntry("once.application.json", []byte(appSettings.Marshal()))
-	writeEntry("once.volume.json", []byte(volSettings.Marshal()))
+	writeEntry("oma.application.json", []byte(appSettings.Marshal()))
+	writeEntry("oma.volume.json", []byte(volSettings.Marshal()))
 
 	// Add data directory with a marker file for hook testing.
 	// Use UID/GID 1000 to match realistic backup ownership.

@@ -7,7 +7,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o testapp .
 
 FROM debian:stable-slim
 
-LABEL org.opencontainers.image.source=https://github.com/basecamp/once
+LABEL org.opencontainers.image.source=https://github.com/ikioma-ai/oma
 
 COPY --from=builder /app/testapp /testapp
 

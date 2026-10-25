@@ -10,12 +10,14 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
 const (
-	githubReleasesURL = "https://api.github.com/repos/basecamp/once/releases/latest"
+	githubReleasesURL = brand.GitHubReleasesURL
 	httpTimeout       = 30 * time.Second
-	updateTempFile    = ".once-update-tmp"
+	updateTempFile    = "." + brand.Name + "-update-tmp"
 )
 
 type Updater struct {
@@ -50,7 +52,7 @@ func (u *Updater) UpdateBinary() error {
 		return nil
 	}
 
-	assetName := fmt.Sprintf("once-%s-%s", runtime.GOOS, runtime.GOARCH)
+	assetName := fmt.Sprintf("%s-%s-%s", brand.Name, runtime.GOOS, runtime.GOARCH)
 	var downloadURL string
 	for _, a := range rel.Assets {
 		if a.Name == assetName {
@@ -62,7 +64,7 @@ func (u *Updater) UpdateBinary() error {
 		return fmt.Errorf("no release asset found for %s", assetName)
 	}
 
-	fmt.Printf("Updating once from %s to %s...\n", u.currentVersion, rel.TagName)
+	fmt.Printf("Updating %s from %s to %s...\n", brand.DisplayName, u.currentVersion, rel.TagName)
 
 	execPath, err := os.Executable()
 	if err != nil {

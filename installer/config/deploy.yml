@@ -1,12 +1,14 @@
-service: once-installer
-image: basecamp/once-installer
+service: oma-installer
+image: ikioma-ai/oma-installer
 
+# Replace these with the Oma installer hosts before deployment.
 servers:
-  - once-installer-101
-  - once-installer-102
+  - oma-installer-101
+  - oma-installer-102
 
 proxy:
-  host: get.once.com
+  # Replace this with the Oma installer hostname before deployment.
+  host: get.oma.example
 
 registry:
   server: localhost:5555

@@ -3,7 +3,7 @@
 PLATFORMS = linux darwin
 ARCHITECTURES = amd64 arm64
 VERSION := $(shell git describe --tags --always)
-LDFLAGS := -ldflags "-s -w -X 'github.com/basecamp/once/internal/version.Version=$(VERSION)'"
+LDFLAGS := -ldflags "-s -w -X 'github.com/ikioma-ai/oma/internal/version.Version=$(VERSION)'"
 
 TEST_RELEASE_TAG = v0.0.1-test
 
@@ -43,10 +43,10 @@ dist: build-all
 	mkdir -p dist
 	@for os in $(PLATFORMS); do \
 		for arch in $(ARCHITECTURES); do \
-			cp bin/$$os-$$arch/once dist/once-$$os-$$arch; \
+			cp bin/$$os-$$arch/oma dist/oma-$$os-$$arch; \
 		done; \
 	done
-	cd dist && sha256sum once-* > checksums.txt
+	cd dist && sha256sum oma-* > checksums.txt
 
 test-release:
 	-gh release delete $(TEST_RELEASE_TAG) --yes --cleanup-tag

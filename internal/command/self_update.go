@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/basecamp/once/internal/version"
+	"github.com/ikioma-ai/oma/internal/version"
 )
 
 type selfUpdateCommand struct {
@@ -14,7 +14,7 @@ func newSelfUpdateCommand() *selfUpdateCommand {
 	u := &selfUpdateCommand{}
 	u.cmd = &cobra.Command{
 		Use:   "self-update",
-		Short: "Update once to the latest version",
+		Short: "Update Oma to the latest version",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return version.NewUpdater().UpdateBinary()

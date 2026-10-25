@@ -13,15 +13,17 @@ import (
 	"github.com/axiomhq/hyperloglog"
 	"github.com/containerd/errdefs"
 	"github.com/moby/moby/client"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
 const NumBuckets = 168 // 7 days × 24 hours
 
 const (
 	stateFileDir    = "/home/kamal-proxy/.config/kamal-proxy"
-	binaryFileName  = "once-userstats.bin"
+	binaryFileName  = brand.Name + "-userstats.bin"
 	binaryFilePath  = stateFileDir + "/" + binaryFileName
-	summaryFileName = "once-userstats.json"
+	summaryFileName = brand.Name + "-userstats.json"
 	summaryFilePath = stateFileDir + "/" + summaryFileName
 )
 

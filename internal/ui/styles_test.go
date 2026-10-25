@@ -55,14 +55,14 @@ func TestWithBackground(t *testing.T) {
 
 func TestTitleRule(t *testing.T) {
 	rule := Styles.TitleRule(80, "app.example.com")
-	assert.Contains(t, rule, "ONCE")
+	assert.Contains(t, rule, "OMA")
 	assert.Contains(t, rule, "app.example.com")
 	assert.Equal(t, 80, lipgloss.Width(rule))
 }
 
 func TestTitleRuleMultipleCrumbs(t *testing.T) {
 	rule := Styles.TitleRule(80, "app.example.com", "settings")
-	assert.Contains(t, rule, "ONCE")
+	assert.Contains(t, rule, "OMA")
 	assert.Contains(t, rule, "app.example.com")
 	assert.Contains(t, rule, "settings")
 }

@@ -2,3 +2,4 @@
 /dist
 coverage.out
 /integration/testapp/testapp
+/installer/oma-installer

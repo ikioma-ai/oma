@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/basecamp/once/internal/docker"
+	"github.com/ikioma-ai/oma/internal/docker"
 )
 
 func TestInstall_KnownAppFlow(t *testing.T) {
@@ -259,7 +259,7 @@ func TestInstall_ShowsLogoAndHidesTitleWhenNoApps(t *testing.T) {
 
 	view := m.View()
 	assert.Contains(t, view, "██████╗")
-	assert.NotContains(t, view, "ONCE · install")
+	assert.NotContains(t, view, "OMA · install")
 }
 
 func TestInstall_ShowsTitleAndHidesLogoWhenAppsExist(t *testing.T) {
@@ -269,7 +269,7 @@ func TestInstall_ShowsTitleAndHidesLogoWhenAppsExist(t *testing.T) {
 
 	view := m.View()
 	assert.NotContains(t, view, "██████╗")
-	assert.Contains(t, view, "ONCE · install")
+	assert.Contains(t, view, "OMA · install")
 }
 
 func TestInstall_ShowLogo(t *testing.T) {
@@ -279,7 +279,7 @@ func TestInstall_ShowLogo(t *testing.T) {
 	assert.True(t, NewInstall(noApps, "").showLogo())
 	assert.False(t, NewInstall(withApps, "").showLogo())
 
-	t.Setenv("ONCE_REDUCED_MOTION", "true")
+	t.Setenv("OMA_REDUCED_MOTION", "true")
 	assert.False(t, NewInstall(noApps, "").showLogo())
 	assert.False(t, NewInstall(withApps, "").showLogo())
 }

@@ -6,6 +6,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
+
+	"github.com/ikioma-ai/oma/internal/brand"
 )
 
 // Colors is the active palette. It is initialized with a default palette
@@ -73,7 +75,7 @@ func (s styles) WithError(base lipgloss.Style, hasError bool) lipgloss.Style {
 }
 
 func (s styles) TitleRule(width int, crumbs ...string) string {
-	label := " " + strings.Join(append([]string{"ONCE"}, crumbs...), " · ") + " "
+	label := " " + strings.Join(append([]string{brand.Wordmark}, crumbs...), " · ") + " "
 	labelWidth := lipgloss.Width(label)
 	ruleWidth := max(width-2, labelWidth) // subtract end caps
 	side := (ruleWidth - labelWidth) / 2

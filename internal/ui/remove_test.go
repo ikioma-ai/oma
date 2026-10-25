@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/basecamp/once/internal/docker"
+	"github.com/ikioma-ai/oma/internal/docker"
 )
 
 func TestRemove_ViewShowsConfirmation(t *testing.T) {

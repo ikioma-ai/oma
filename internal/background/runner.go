@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/basecamp/once/internal/docker"
-	"github.com/basecamp/once/internal/userstats"
-	"github.com/basecamp/once/internal/version"
+	"github.com/ikioma-ai/oma/internal/brand"
+	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/userstats"
+	"github.com/ikioma-ai/oma/internal/version"
 )
 
 const CheckInterval = 5 * time.Minute
@@ -78,7 +79,7 @@ func (r *Runner) check(ctx context.Context) (bool, error) {
 }
 
 func (r *Runner) checkSelfUpdate(ctx context.Context, ns *docker.Namespace, state *docker.State) bool {
-	if os.Getenv("ONCE_NO_SELF_UPDATE") != "" {
+	if os.Getenv(brand.NoSelfUpdateEnv) != "" {
 		return false
 	}
 
@@ -86,7 +87,7 @@ func (r *Runner) checkSelfUpdate(ctx context.Context, ns *docker.Namespace, stat
 		return false
 	}
 
-	slog.Info("Checking for once update")
+	slog.Info("Checking for " + brand.DisplayName + " update")
 
 	err := version.NewUpdater().UpdateBinary()
 	state.RecordSelfUpdate(err)

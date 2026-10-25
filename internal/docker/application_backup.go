@@ -19,15 +19,16 @@ import (
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/client"
 
-	"github.com/basecamp/once/internal/fsutil"
+	"github.com/ikioma-ai/oma/internal/brand"
+	"github.com/ikioma-ai/oma/internal/fsutil"
 )
 
 const (
 	BackupDataDir   = "data"
 	BackupRetention = 30 * 24 * time.Hour
 
-	backupAppSettingsEntry = "once.application.json"
-	backupVolSettingsEntry = "once.volume.json"
+	backupAppSettingsEntry = brand.Name + ".application.json"
+	backupVolSettingsEntry = brand.Name + ".volume.json"
 	backupTimeFormat       = "20060102-150405"
 )
 

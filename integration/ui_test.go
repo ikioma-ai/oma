@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/basecamp/once/internal/ui"
+	"github.com/ikioma-ai/oma/internal/ui"
 )
 
 func TestUIInstallAndManageApp(t *testing.T) {
@@ -21,7 +21,7 @@ func TestUIInstallAndManageApp(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ns := newTestNamespace(t, "once-ui-test")
+	ns := newTestNamespace(t, "oma-ui-test")
 
 	require.NoError(t, ns.EnsureNetwork(ctx))
 	proxyPorts := getProxyPorts(t)

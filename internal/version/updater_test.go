@@ -24,7 +24,7 @@ func TestUpdateBinary_NewerVersion(t *testing.T) {
 	dir := t.TempDir()
 
 	// Write a fake "current binary"
-	execPath := filepath.Join(dir, "once")
+	execPath := filepath.Join(dir, "oma")
 	require.NoError(t, os.WriteFile(execPath, []byte("old"), 0755))
 
 	// Serve a fake binary as the download asset
@@ -35,8 +35,8 @@ func TestUpdateBinary_NewerVersion(t *testing.T) {
 	t.Cleanup(assetSrv.Close)
 
 	assets := []asset{{
-		Name: "once-linux-amd64",
-		URL:  assetSrv.URL + "/once-linux-amd64",
+		Name: "oma-linux-amd64",
+		URL:  assetSrv.URL + "/oma-linux-amd64",
 	}}
 	srv := releaseServer(t, "v2.0.0", assets)
 	u := newUpdater("v1.0.0", srv.URL, srv.Client())
@@ -54,7 +54,7 @@ func TestUpdateBinary_NewerVersion(t *testing.T) {
 }
 
 func TestUpdateBinary_AssetNotFound(t *testing.T) {
-	srv := releaseServer(t, "v2.0.0", []asset{{Name: "once-windows-amd64", URL: "http://example.com"}})
+	srv := releaseServer(t, "v2.0.0", []asset{{Name: "oma-windows-amd64", URL: "http://example.com"}})
 	u := newUpdater("v1.0.0", srv.URL, srv.Client())
 
 	// Patch GOOS/GOARCH by checking the error contains the platform string
@@ -93,8 +93,8 @@ func TestUpdateBinary_DownloadFails(t *testing.T) {
 	t.Cleanup(badSrv.Close)
 
 	assets := []asset{{
-		Name: "once-linux-amd64",
-		URL:  badSrv.URL + "/once-linux-amd64",
+		Name: "oma-linux-amd64",
+		URL:  badSrv.URL + "/oma-linux-amd64",
 	}}
 	srv := releaseServer(t, "v2.0.0", assets)
 	u := newUpdater("v1.0.0", srv.URL, srv.Client())
@@ -102,14 +102,14 @@ func TestUpdateBinary_DownloadFails(t *testing.T) {
 
 	// Test download failure by calling downloadBinary directly
 	dir := t.TempDir()
-	err := u.downloadBinary(badSrv.URL+"/once-linux-amd64", filepath.Join(dir, "tmp"))
+	err := u.downloadBinary(badSrv.URL+"/oma-linux-amd64", filepath.Join(dir, "tmp"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected status 404")
 }
 
 func TestReplaceBinary(t *testing.T) {
 	dir := t.TempDir()
-	execPath := filepath.Join(dir, "once")
+	execPath := filepath.Join(dir, "oma")
 	require.NoError(t, os.WriteFile(execPath, []byte("old"), 0755))
 
 	newContent := []byte("new")
@@ -158,7 +158,7 @@ func releaseServer(t *testing.T, tag string, assets []asset) *httptest.Server {
 
 func writeTemp(t *testing.T, dir string, content []byte) string {
 	t.Helper()
-	path := filepath.Join(dir, "once-tmp")
+	path := filepath.Join(dir, "oma-tmp")
 	require.NoError(t, os.WriteFile(path, content, 0755))
 	return path
 }
