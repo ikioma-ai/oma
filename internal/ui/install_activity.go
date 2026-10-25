@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ikioma-ai/oma/internal/catalog"
 	"github.com/ikioma-ai/oma/internal/docker"
 )
 
@@ -42,6 +43,7 @@ type InstallActivity struct {
 	namespace     *docker.Namespace
 	imageRef      string
 	hostname      string
+	catalogID     string
 	registry      docker.RegistrySettings
 	width, height int
 	stage         installStage
@@ -53,12 +55,13 @@ type InstallActivity struct {
 	cancel        context.CancelFunc
 }
 
-func NewInstallActivity(ns *docker.Namespace, imageRef, hostname string, registry docker.RegistrySettings) *InstallActivity {
+func NewInstallActivity(ns *docker.Namespace, imageRef, hostname, catalogID string, registry docker.RegistrySettings) *InstallActivity {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &InstallActivity{
 		namespace:    ns,
 		imageRef:     imageRef,
 		hostname:     hostname,
+		catalogID:    catalogID,
 		registry:     registry,
 		stage:        stagePreparing,
 		progress:     NewProgress(0, Colors.Primary),
@@ -177,13 +180,7 @@ func (m *InstallActivity) runInstall(ctx context.Context) {
 	}
 	hostname := m.hostname
 
-	app := docker.NewApplication(m.namespace, docker.ApplicationSettings{
-		Name:       appName,
-		Image:      m.imageRef,
-		Host:       hostname,
-		AutoUpdate: true,
-		Registry:   m.registry,
-	})
+	app := docker.NewApplication(m.namespace, m.applicationSettings(appName, hostname))
 
 	progress := func(p docker.DeployProgress) {
 		switch p.Stage {
@@ -210,4 +207,62 @@ func (m *InstallActivity) runInstall(ctx context.Context) {
 	}
 
 	m.doneChan <- installDoneMsg{app: app}
+}
+
+func (m *InstallActivity) applicationSettings(appName, hostname string) docker.ApplicationSettings {
+	settings := docker.ApplicationSettings{
+		Name:       appName,
+		Image:      m.imageRef,
+		Host:       hostname,
+		AutoUpdate: true,
+		Registry:   m.registry,
+	}
+
+	if m.catalogID == "" {
+		return settings
+	}
+
+	store, err := catalog.Load()
+	if err != nil {
+		slog.Error("Failed to load catalog for install", "catalogID", m.catalogID, "error", err)
+		return settings
+	}
+
+	entry, ok := store.Get(m.catalogID)
+	if !ok {
+		slog.Error("Catalog entry not found for install", "catalogID", m.catalogID)
+		return settings
+	}
+
+	return settingsFromCatalogEntry(settings, entry)
+}
+
+// Helpers
+
+func settingsFromCatalogEntry(settings docker.ApplicationSettings, entry catalog.Entry) docker.ApplicationSettings {
+	settings.CatalogID = entry.ID
+	settings.CatalogSource = string(entry.Source)
+	settings.ServicePort = entry.Web.Port
+	settings.HealthCheckPath = entry.Web.HealthPath
+	settings.HealthCheckPort = entry.Web.HealthPort
+	settings.HealthCheckTimeout = entry.Web.HealthTimeout
+	settings.TLSMode = entry.Web.TLS
+
+	if entry.Web.Verify != nil {
+		verify := *entry.Web.Verify
+		settings.Verify = &verify
+	}
+
+	if len(entry.Storage) > 0 {
+		settings.Storage = make([]docker.StorageMount, len(entry.Storage))
+		for i, storage := range entry.Storage {
+			settings.Storage[i] = docker.StorageMount{
+				Path:    storage.Path,
+				Primary: storage.Primary,
+				Backup:  storage.Backup,
+			}
+		}
+	}
+
+	return settings
 }

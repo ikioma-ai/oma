@@ -42,6 +42,29 @@ func TestDeployArgs(t *testing.T) {
 		assert.Contains(t, args, "--tls")
 	})
 
+	t.Run("with health check settings", func(t *testing.T) {
+		args := proxy.deployArgs(DeployOptions{
+			AppName:            "chat",
+			Target:             "localhost:3000",
+			Host:               "chat.example.com",
+			TLS:                true,
+			HealthCheckPath:    "/healthz",
+			HealthCheckPort:    3001,
+			HealthCheckTimeout: "10s",
+		})
+
+		assert.Equal(t, []string{
+			"kamal-proxy", "deploy", "chat",
+			"--target", "localhost:3000",
+			"--deploy-timeout", "120s",
+			"--health-check-path", "/healthz",
+			"--health-check-port", "3001",
+			"--health-check-timeout", "10s",
+			"--host", "chat.example.com",
+			"--tls",
+		}, args)
+	})
+
 	t.Run("with host and TLS", func(t *testing.T) {
 		args := proxy.deployArgs(DeployOptions{
 			AppName: "chat",

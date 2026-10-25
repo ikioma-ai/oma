@@ -53,6 +53,7 @@ type Install struct {
 	cliMode        bool
 	customImage    bool
 	customImageRef string
+	catalogID      string
 	installFlag    string
 	registry       docker.RegistrySettings
 }
@@ -69,8 +70,9 @@ func NewInstall(ns *docker.Namespace, imageRef string) Install {
 	}
 
 	if imageRef != "" {
-		if expanded, ok := expandAlias(imageRef); ok {
-			imageRef = expanded
+		if entry, ok := findCatalogEntry(imageRef); ok {
+			m.catalogID = entry.ID
+			imageRef = entry.Image
 		}
 		m.state = installStateHostname
 		m.hostnameForm = NewInstallHostnameForm(imageRef, m.installFlag)
@@ -171,12 +173,14 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 	case InstallAppSelectedMsg:
 		m.hostnameForm = NewInstallHostnameForm(msg.ImageRef, "")
 		m.customImage = false
+		m.catalogID = msg.CatalogID
 		m.registry = docker.RegistrySettings{}
 		m.state = installStateHostname
 		return m, m.initScreenWithSize()
 
 	case InstallCustomSelectedMsg:
 		m.imageForm = NewInstallImageForm()
+		m.catalogID = ""
 		m.state = installStateImageForm
 		return m, m.initScreenWithSize()
 
@@ -192,6 +196,7 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 		m.hostnameForm = NewInstallHostnameForm(msg.ImageRef, "")
 		m.customImage = true
 		m.customImageRef = msg.ImageRef
+		m.catalogID = msg.CatalogID
 		m.registry = docker.RegistrySettings{}
 		if msg.RegistryUsername != "" || msg.RegistryPassword != "" {
 			host, _ := docker.RegistryHost(msg.ImageRef)
@@ -225,7 +230,7 @@ func (m Install) Update(msg tea.Msg) (Component, tea.Cmd) {
 			return m, nil
 		}
 		m.state = installStateActivity
-		m.activity = NewInstallActivity(m.namespace, msg.ImageRef, msg.Hostname, m.registry)
+		m.activity = NewInstallActivity(m.namespace, msg.ImageRef, msg.Hostname, m.catalogID, m.registry)
 		m.activity.Update(tea.WindowSizeMsg{Width: m.width, Height: m.height})
 		return m, m.activity.Init()
 

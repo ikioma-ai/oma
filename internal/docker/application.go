@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,9 +49,11 @@ var (
 )
 
 const (
-	AutomaticTaskInterval = 24 * time.Hour
-	HealthCheckPath       = "/up"
-	httpVerifyTimeout     = 30 * time.Second
+	AutomaticTaskInterval     = 24 * time.Hour
+	DefaultServicePort        = 80
+	HealthCheckPath           = "/up"
+	DefaultHealthCheckTimeout = "5s"
+	httpVerifyTimeout         = 30 * time.Second
 )
 
 // AppVolumeMountTargets defines the paths where the app data volume is mounted
@@ -234,6 +237,10 @@ func (a *Application) UpdateSettings(ctx context.Context, settings ApplicationSe
 }
 
 func (a *Application) VerifyHTTPOrRemove(ctx context.Context) error {
+	if !a.Settings.VerifyEnabled() {
+		return nil
+	}
+
 	if err := a.verifyHTTP(ctx); err != nil {
 		if cleanupErr := a.Remove(context.Background(), true); cleanupErr != nil {
 			slog.Error("Failed to clean up after verification failure", "app", a.Settings.Name, "error", cleanupErr)
@@ -377,12 +384,16 @@ func (a *Application) deployWithVolume(ctx context.Context, vol *ApplicationVolu
 	}
 
 	shortContainerID := resp.ID[:12]
+	target := net.JoinHostPort(shortContainerID, strconv.Itoa(a.servicePort()))
 
 	if err := a.namespace.Proxy().Deploy(ctx, DeployOptions{
-		AppName: a.Settings.Name,
-		Target:  shortContainerID,
-		Host:    a.Settings.Host,
-		TLS:     a.Settings.TLSEnabled(),
+		AppName:            a.Settings.Name,
+		Target:             target,
+		Host:               a.Settings.Host,
+		TLS:                a.Settings.TLSEnabled(),
+		HealthCheckPath:    a.healthCheckPath(),
+		HealthCheckPort:    a.healthCheckPort(),
+		HealthCheckTimeout: a.healthCheckTimeout(),
 	}); err != nil {
 		a.namespace.client.ContainerRemove(ctx, resp.ID, client.ContainerRemoveOptions{Force: true})
 		if strings.Contains(err.Error(), "target not healthy") || strings.Contains(err.Error(), "deploy timed out") {
@@ -423,8 +434,15 @@ func (a *Application) verifyHTTP(ctx context.Context) error {
 		return nil
 	}
 
-	client := &http.Client{Timeout: httpVerifyTimeout}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+HealthCheckPath, nil)
+	timeout := httpVerifyTimeout
+	if a.Settings.HealthCheckTimeout != "" {
+		if configured, err := time.ParseDuration(a.Settings.HealthCheckTimeout); err == nil && configured > 0 {
+			timeout = configured
+		}
+	}
+
+	client := &http.Client{Timeout: timeout}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+a.healthCheckPath(), nil)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrVerificationFailed, err)
 	}
@@ -463,9 +481,62 @@ func (a *Application) removeContainersExcept(ctx context.Context, keep string) e
 	return nil
 }
 
+func (a *Application) servicePort() int {
+	if a.Settings.ServicePort > 0 {
+		return a.Settings.ServicePort
+	}
+	return DefaultServicePort
+}
+
+func (a *Application) healthCheckPath() string {
+	if a.Settings.HealthCheckPath != "" {
+		return a.Settings.HealthCheckPath
+	}
+	return HealthCheckPath
+}
+
+func (a *Application) healthCheckPort() int {
+	if a.Settings.HealthCheckPort > 0 {
+		return a.Settings.HealthCheckPort
+	}
+	return a.servicePort()
+}
+
+func (a *Application) healthCheckTimeout() string {
+	if a.Settings.HealthCheckTimeout != "" {
+		return a.Settings.HealthCheckTimeout
+	}
+	return DefaultHealthCheckTimeout
+}
+
+func (a *Application) mountTargets() []string {
+	if len(a.Settings.Storage) == 0 {
+		return AppVolumeMountTargets
+	}
+
+	targets := make([]string, len(a.Settings.Storage))
+	for i, storage := range a.Settings.Storage {
+		targets[i] = storage.Path
+	}
+	return targets
+}
+
+func (a *Application) primaryMountTarget() string {
+	if len(a.Settings.Storage) == 0 {
+		return AppVolumeMountTargets[0]
+	}
+
+	for _, storage := range a.Settings.Storage {
+		if storage.Primary {
+			return storage.Path
+		}
+	}
+	return a.Settings.Storage[0].Path
+}
+
 func (a *Application) volumeMounts(vol *ApplicationVolume) []mount.Mount {
 	var mounts []mount.Mount
-	for _, target := range AppVolumeMountTargets {
+	for _, target := range a.mountTargets() {
 		mounts = append(mounts, mount.Mount{
 			Type:   mount.TypeVolume,
 			Source: vol.Name(),

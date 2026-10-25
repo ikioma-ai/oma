@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/netip"
+	"strconv"
 	"strings"
 
 	"github.com/containerd/errdefs"
@@ -56,10 +57,13 @@ func (s ProxySettings) Marshal() string {
 }
 
 type DeployOptions struct {
-	AppName string
-	Target  string
-	Host    string
-	TLS     bool
+	AppName            string
+	Target             string
+	Host               string
+	TLS                bool
+	HealthCheckPath    string
+	HealthCheckPort    int
+	HealthCheckTimeout string
 }
 
 type Proxy struct {
@@ -220,6 +224,16 @@ func (p *Proxy) ensureRunning(ctx context.Context, info container.InspectRespons
 
 func (p *Proxy) deployArgs(opts DeployOptions) []string {
 	args := []string{"kamal-proxy", "deploy", opts.AppName, "--target", opts.Target, "--deploy-timeout", deployTimeout}
+
+	if opts.HealthCheckPath != "" {
+		args = append(args, "--health-check-path", opts.HealthCheckPath)
+	}
+	if opts.HealthCheckPort > 0 {
+		args = append(args, "--health-check-port", strconv.Itoa(opts.HealthCheckPort))
+	}
+	if opts.HealthCheckTimeout != "" {
+		args = append(args, "--health-check-timeout", opts.HealthCheckTimeout)
+	}
 
 	if opts.Host != "" {
 		args = append(args, "--host", opts.Host)

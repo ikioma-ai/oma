@@ -28,6 +28,74 @@ func TestVerifyHTTP_Success(t *testing.T) {
 	assert.Equal(t, HealthCheckPath, requestPath)
 }
 
+func TestVerifyHTTPUsesConfiguredPath(t *testing.T) {
+	var requestPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	app := &Application{
+		Settings: ApplicationSettings{
+			Host:               server.Listener.Addr().String(),
+			DisableTLS:         true,
+			HealthCheckPath:    "/healthz",
+			HealthCheckTimeout: "1s",
+		},
+	}
+
+	require.NoError(t, app.verifyHTTP(context.Background()))
+	assert.Equal(t, "/healthz", requestPath)
+}
+
+func TestVerifyHTTPOrRemoveSkipsWhenDisabled(t *testing.T) {
+	verify := false
+	app := &Application{Settings: ApplicationSettings{Verify: &verify}}
+
+	assert.NoError(t, app.VerifyHTTPOrRemove(context.Background()))
+}
+
+func TestMountTargetsFromSettings(t *testing.T) {
+	app := &Application{
+		Settings: ApplicationSettings{
+			Storage: []StorageMount{
+				{Path: "/data", Primary: true},
+				{Path: "/storage"},
+			},
+		},
+	}
+
+	assert.Equal(t, []string{"/data", "/storage"}, app.mountTargets())
+	assert.Equal(t, "/data", app.primaryMountTarget())
+}
+
+func TestMountTargetsFallBackToDefaults(t *testing.T) {
+	app := &Application{Settings: ApplicationSettings{}}
+
+	assert.Equal(t, AppVolumeMountTargets, app.mountTargets())
+	assert.Equal(t, AppVolumeMountTargets[0], app.primaryMountTarget())
+}
+
+func TestDeployContractDefaults(t *testing.T) {
+	app := &Application{Settings: ApplicationSettings{}}
+	assert.Equal(t, DefaultServicePort, app.servicePort())
+	assert.Equal(t, HealthCheckPath, app.healthCheckPath())
+	assert.Equal(t, DefaultServicePort, app.healthCheckPort())
+	assert.Equal(t, DefaultHealthCheckTimeout, app.healthCheckTimeout())
+
+	app.Settings = ApplicationSettings{
+		ServicePort:        3000,
+		HealthCheckPath:    "/healthz",
+		HealthCheckPort:    3001,
+		HealthCheckTimeout: "10s",
+	}
+	assert.Equal(t, 3000, app.servicePort())
+	assert.Equal(t, "/healthz", app.healthCheckPath())
+	assert.Equal(t, 3001, app.healthCheckPort())
+	assert.Equal(t, "10s", app.healthCheckTimeout())
+}
+
 func TestVerifyHTTP_RedirectToSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
@@ -134,6 +202,16 @@ func TestURL(t *testing.T) {
 	t.Run("localhost disables TLS", func(t *testing.T) {
 		app := newAppWithProxy("chat.localhost", false, &ProxySettings{HTTPPort: 9090})
 		assert.Equal(t, "http://chat.localhost:9090", app.URL())
+	})
+
+	t.Run("TLS mode off disables TLS for a public host", func(t *testing.T) {
+		ns := &Namespace{}
+		ns.proxy = &Proxy{Settings: &ProxySettings{HTTPPort: 8080}}
+		app := &Application{
+			namespace: ns,
+			Settings:  ApplicationSettings{Host: "app.example.com", TLSMode: "off"},
+		}
+		assert.Equal(t, "http://app.example.com:8080", app.URL())
 	})
 }
 

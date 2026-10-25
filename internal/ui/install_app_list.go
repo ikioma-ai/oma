@@ -14,7 +14,10 @@ import (
 const installAppListOtherKey = -1
 
 type (
-	InstallAppSelectedMsg    struct{ ImageRef string }
+	InstallAppSelectedMsg struct {
+		ImageRef  string
+		CatalogID string
+	}
 	InstallCustomSelectedMsg struct{}
 )
 
@@ -59,7 +62,9 @@ func (m InstallAppList) Update(msg tea.Msg) (InstallAppList, tea.Cmd) {
 			return m, nil
 		}
 		app := m.apps[msg.Key]
-		return m, func() tea.Msg { return InstallAppSelectedMsg{ImageRef: app.Image} }
+		return m, func() tea.Msg {
+			return InstallAppSelectedMsg{ImageRef: app.Image, CatalogID: app.ID}
+		}
 	}
 
 	var cmd tea.Cmd
@@ -100,16 +105,18 @@ func appLabel(app catalog.Entry) string {
 	return strings.Join([]string{app.Name, app.Description, app.Category, string(app.Source)}, " · ")
 }
 
-func expandAlias(s string) (string, bool) {
+func findCatalogEntry(s string) (catalog.Entry, bool) {
 	store, err := catalog.Load()
 	if err != nil {
-		return s, false
+		return catalog.Entry{}, false
 	}
+	return store.Get(s)
+}
 
-	entry, ok := store.Get(s)
+func expandAlias(s string) (string, bool) {
+	entry, ok := findCatalogEntry(s)
 	if !ok {
 		return s, false
 	}
-
 	return entry.Image, true
 }

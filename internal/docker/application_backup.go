@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -192,10 +193,10 @@ func (a *Application) backupToWriter(ctx context.Context, w io.Writer) error {
 	}
 
 	needsPause := !found || hookErr != nil
-	return a.copyVolumeData(ctx, containerName, tw, needsPause)
+	return a.copyVolumeData(ctx, containerName, a.primaryMountTarget(), tw, needsPause)
 }
 
-func (a *Application) copyVolumeData(ctx context.Context, containerName string, tw *tar.Writer, pause bool) (returnErr error) {
+func (a *Application) copyVolumeData(ctx context.Context, containerName, mountTarget string, tw *tar.Writer, pause bool) (returnErr error) {
 	if pause {
 		info, err := a.namespace.client.ContainerInspect(ctx, containerName, client.ContainerInspectOptions{})
 		if err != nil {
@@ -223,13 +224,13 @@ func (a *Application) copyVolumeData(ctx context.Context, containerName string, 
 		}()
 	}
 
-	res, err := a.namespace.client.CopyFromContainer(ctx, containerName, client.CopyFromContainerOptions{SourcePath: AppVolumeMountTargets[0]})
+	res, err := a.namespace.client.CopyFromContainer(ctx, containerName, client.CopyFromContainerOptions{SourcePath: mountTarget})
 	if err != nil {
 		return fmt.Errorf("copying from container: %w", err)
 	}
 	defer res.Content.Close()
 
-	if err := copyTarEntriesWithPrefix(res.Content, tw, filepath.Base(AppVolumeMountTargets[0]), BackupDataDir); err != nil {
+	if err := copyTarEntriesWithPrefix(res.Content, tw, path.Base(mountTarget), BackupDataDir); err != nil {
 		return fmt.Errorf("copying volume contents: %w", err)
 	}
 

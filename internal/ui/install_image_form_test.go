@@ -25,6 +25,7 @@ func TestInstallImageForm_SubmitWithAlias(t *testing.T) {
 	submit, ok := msg.(InstallImageSubmitMsg)
 	require.True(t, ok, "expected InstallImageSubmitMsg, got %T", msg)
 	assert.Equal(t, "ghcr.io/basecamp/once-campfire", submit.ImageRef)
+	assert.Equal(t, "campfire", submit.CatalogID)
 	assert.Empty(t, submit.RegistryUsername)
 	assert.Empty(t, submit.RegistryPassword)
 }

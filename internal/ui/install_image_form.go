@@ -8,6 +8,7 @@ const installImageField = 0
 
 type InstallImageSubmitMsg struct {
 	ImageRef         string
+	CatalogID        string
 	RegistryUsername string
 	RegistryPassword string
 }
@@ -76,10 +77,12 @@ func newInstallImageForm(showCredentials bool, imageRef string) InstallImageForm
 
 	m.form.OnSubmit(func(f *Form) tea.Cmd {
 		ref := imageField.Value()
-		if expanded, ok := expandAlias(ref); ok {
-			ref = expanded
+		catalogID := ""
+		if entry, ok := findCatalogEntry(ref); ok {
+			ref = entry.Image
+			catalogID = entry.ID
 		}
-		msg := InstallImageSubmitMsg{ImageRef: ref}
+		msg := InstallImageSubmitMsg{ImageRef: ref, CatalogID: catalogID}
 		if showCredentials {
 			msg.RegistryUsername = usernameField.Value()
 			msg.RegistryPassword = passwordField.Value()

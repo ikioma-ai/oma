@@ -469,3 +469,14 @@ func updateInstall(m Install, msg tea.Msg) (Install, tea.Cmd) {
 	comp, cmd := m.Update(msg)
 	return comp.(Install), cmd
 }
+
+func TestInstall_CLIModeTracksCatalogID(t *testing.T) {
+	m := NewInstall(newTestNamespace(), "campfire")
+	assert.Equal(t, "campfire", m.catalogID)
+}
+
+func TestInstall_SelectionTracksCatalogID(t *testing.T) {
+	m := newTestInstall()
+	m, _ = updateInstall(m, InstallAppSelectedMsg{ImageRef: "ghcr.io/basecamp/once-campfire", CatalogID: "campfire"})
+	assert.Equal(t, "campfire", m.catalogID)
+}

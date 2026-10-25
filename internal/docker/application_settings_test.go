@@ -315,3 +315,103 @@ func TestAutoUpdateAndBackupMarshalRoundTrip(t *testing.T) {
 	assert.True(t, restored.Backup.AutoBackup)
 	assert.True(t, original.Equal(restored))
 }
+
+func TestApplicationSettingsValidateDeployContract(t *testing.T) {
+	base := ApplicationSettings{Image: "img:latest"}
+
+	valid := base
+	valid.ServicePort = 3000
+	valid.HealthCheckPath = "/healthz"
+	valid.HealthCheckPort = 3001
+	valid.HealthCheckTimeout = "10s"
+	valid.TLSMode = "off"
+	valid.Storage = []StorageMount{{Path: "/data", Primary: true, Backup: true}, {Path: "/storage"}}
+	require.NoError(t, valid.Validate())
+
+	tests := []struct {
+		name   string
+		mutate func(*ApplicationSettings)
+	}{
+		{"service port", func(s *ApplicationSettings) { s.ServicePort = 70000 }},
+		{"health port", func(s *ApplicationSettings) { s.HealthCheckPort = 70000 }},
+		{"health path", func(s *ApplicationSettings) { s.HealthCheckPath = "healthz" }},
+		{"health timeout", func(s *ApplicationSettings) { s.HealthCheckTimeout = "soon" }},
+		{"TLS mode", func(s *ApplicationSettings) { s.TLSMode = "sometimes" }},
+		{"relative storage path", func(s *ApplicationSettings) { s.Storage = []StorageMount{{Path: "data"}} }},
+		{"duplicate storage path", func(s *ApplicationSettings) {
+			s.Storage = []StorageMount{{Path: "/data"}, {Path: "/data"}}
+		}},
+		{"multiple primaries", func(s *ApplicationSettings) {
+			s.Storage = []StorageMount{{Path: "/data", Primary: true}, {Path: "/storage", Primary: true}}
+		}},
+		{"backup on secondary", func(s *ApplicationSettings) {
+			s.Storage = []StorageMount{{Path: "/data", Primary: true}, {Path: "/storage", Backup: true}}
+		}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			settings := base
+			test.mutate(&settings)
+			assert.Error(t, settings.Validate())
+		})
+	}
+}
+
+func TestApplicationSettingsTLSMode(t *testing.T) {
+	assert.False(t, ApplicationSettings{Host: "app.example.com", TLSMode: "off"}.TLSEnabled())
+	assert.True(t, ApplicationSettings{Host: "app.example.com", TLSMode: "auto"}.TLSEnabled())
+	assert.False(t, ApplicationSettings{Host: "app.example.com", DisableTLS: true, TLSMode: "auto"}.TLSEnabled())
+}
+
+func TestApplicationSettingsVerifyEnabled(t *testing.T) {
+	assert.True(t, (ApplicationSettings{}).VerifyEnabled())
+
+	verify := false
+	assert.False(t, ApplicationSettings{Verify: &verify}.VerifyEnabled())
+}
+
+func TestApplicationSettingsEqualDeployContract(t *testing.T) {
+	base := ApplicationSettings{Name: "app", Image: "img:latest"}
+
+	changed := base
+	changed.ServicePort = 3000
+	assert.False(t, base.Equal(changed))
+
+	changed = base
+	changed.Storage = []StorageMount{{Path: "/data", Primary: true}}
+	assert.False(t, base.Equal(changed))
+
+	verify := false
+	changed = base
+	changed.Verify = &verify
+	assert.False(t, base.Equal(changed))
+}
+
+func TestCatalogSettingsMarshalRoundTrip(t *testing.T) {
+	verify := false
+	original := ApplicationSettings{
+		Name:               "app",
+		Image:              "img:latest",
+		Host:               "app.example.com",
+		CatalogID:          "myapp",
+		CatalogSource:      "user",
+		ServicePort:        3000,
+		HealthCheckPath:    "/healthz",
+		HealthCheckPort:    3001,
+		HealthCheckTimeout: "10s",
+		TLSMode:            "off",
+		Verify:             &verify,
+		Storage: []StorageMount{
+			{Path: "/data", Primary: true, Backup: true},
+			{Path: "/storage"},
+		},
+	}
+
+	restored, err := UnmarshalApplicationSettings(original.Marshal())
+	require.NoError(t, err)
+	assert.True(t, original.Equal(restored))
+	assert.Equal(t, original.Storage, restored.Storage)
+	require.NotNil(t, restored.Verify)
+	assert.False(t, *restored.Verify)
+}
