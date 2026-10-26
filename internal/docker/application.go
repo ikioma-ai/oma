@@ -183,6 +183,12 @@ func (a *Application) Exec(ctx context.Context, cmd []string) error {
 }
 
 func (a *Application) Update(ctx context.Context, progress DeployProgressCallback) (bool, error) {
+	lock, err := a.acquireOperation(ctx, "update")
+	if err != nil {
+		return false, err
+	}
+	defer releaseOperation(lock)
+
 	changed, err := a.pullImage(ctx, progress)
 	if err != nil {
 		a.saveOperationResult(ctx, func(s *State) { s.RecordUpdate(a.Settings.Name, err) })
@@ -211,6 +217,12 @@ func (a *Application) Deploy(ctx context.Context, progress DeployProgressCallbac
 		return ErrHostRequired
 	}
 
+	lock, err := a.acquireOperation(ctx, "deploy")
+	if err != nil {
+		return err
+	}
+	defer releaseOperation(lock)
+
 	if _, err := a.pullImage(ctx, progress); err != nil {
 		return err
 	}
@@ -234,6 +246,12 @@ func (a *Application) UpdateSettings(ctx context.Context, settings ApplicationSe
 // requested, so settings-only applies can avoid moving the image tag. On
 // failure, the previous settings are restored.
 func (a *Application) ApplySettings(ctx context.Context, settings ApplicationSettings, pull bool, progress DeployProgressCallback) error {
+	lock, err := a.acquireOperation(ctx, "apply")
+	if err != nil {
+		return err
+	}
+	defer releaseOperation(lock)
+
 	vol, err := a.Volume(ctx)
 	if err != nil {
 		return fmt.Errorf("getting volume: %w", err)

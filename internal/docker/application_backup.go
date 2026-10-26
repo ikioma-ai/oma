@@ -65,6 +65,13 @@ func (a *Application) BackupToFile(ctx context.Context, dir string, name string)
 	}
 	defer file.Close()
 
+	lock, err := a.acquireOperation(ctx, "backup")
+	if err != nil {
+		os.Remove(filePath)
+		return err
+	}
+	defer releaseOperation(lock)
+
 	err = a.backupToWriter(ctx, file)
 	a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, err) })
 
@@ -119,6 +126,12 @@ func (a *Application) TrimBackups() error {
 }
 
 func (a *Application) Restore(ctx context.Context, volSettings ApplicationLegacyVolumeSettings, backup io.Reader) (returnErr error) {
+	lock, err := a.acquireOperation(ctx, "restore")
+	if err != nil {
+		return err
+	}
+	defer releaseOperation(lock)
+
 	slog.Info("Restoring application", "app", a.Settings.Name)
 
 	defer func() {

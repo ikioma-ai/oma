@@ -1,9 +1,11 @@
 package command
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -28,6 +30,7 @@ func newTargetCommand() *targetCommand {
 	t.cmd.AddCommand(newTargetAddCommand().cmd)
 	t.cmd.AddCommand(newTargetCheckCommand().cmd)
 	t.cmd.AddCommand(newTargetDefaultCommand().cmd)
+	t.cmd.AddCommand(newTargetSetupCommand().cmd)
 	t.cmd.AddCommand(newTargetListCommand().cmd)
 	t.cmd.AddCommand(newTargetRemoveCommand().cmd)
 
@@ -67,6 +70,29 @@ func newTargetCheckCommand() *targetCheckCommand {
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  t.run,
 	}
+	return t
+}
+
+type targetSetupCommand struct {
+	cmd          *cobra.Command
+	ssh          string
+	dockerSocket string
+	namespace    string
+	yes          bool
+}
+
+func newTargetSetupCommand() *targetSetupCommand {
+	t := &targetSetupCommand{}
+	t.cmd = &cobra.Command{
+		Use:   "setup <name>",
+		Short: "Prepare a remote target for Docker access",
+		Args:  cobra.ExactArgs(1),
+		RunE:  t.run,
+	}
+	t.cmd.Flags().StringVar(&t.ssh, "ssh", "", "SSH destination for a new target")
+	t.cmd.Flags().StringVar(&t.dockerSocket, "docker-socket", "", "remote Docker socket path")
+	t.cmd.Flags().StringVar(&t.namespace, "namespace", "", "namespace to use on the target")
+	t.cmd.Flags().BoolVar(&t.yes, "yes", false, "run without confirmation")
 	return t
 }
 
@@ -176,6 +202,91 @@ func (t *targetCheckCommand) run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func (t *targetSetupCommand) run(cmd *cobra.Command, args []string) error {
+	config, err := target.Load()
+	if err != nil {
+		return err
+	}
+
+	name := args[0]
+	selected, err := config.Resolve(name, "")
+	isNew := false
+	if err != nil {
+		if t.ssh == "" {
+			return err
+		}
+		isNew = true
+		selected = target.Target{
+			Name:         name,
+			SSH:          t.ssh,
+			DockerSocket: t.dockerSocket,
+			Namespace:    t.namespace,
+		}
+		if selected.DockerSocket == "" {
+			selected.DockerSocket = target.DefaultDockerSocket
+		}
+		if selected.Namespace == "" {
+			selected.Namespace = target.DefaultNamespace
+		}
+	}
+
+	if selected.Local {
+		return fmt.Errorf("target setup is only for remote targets")
+	}
+	if !isNew && t.ssh != "" && selected.SSH != t.ssh {
+		return fmt.Errorf("target %q already exists with SSH destination %q", name, selected.SSH)
+	}
+
+	out := cmd.OutOrStdout()
+	fmt.Fprintf(out, "Target: %s (%s)\n", selected.Name, selected.SSH)
+	if !t.yes {
+		confirmed, err := confirmTargetSetup(cmd)
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			fmt.Fprintln(out, "Setup cancelled.")
+			return nil
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	if _, err := target.Setup(ctx, selected, func(line string) {
+		fmt.Fprintln(out, line)
+	}); err != nil {
+		return err
+	}
+
+	transport, err := selected.Transport()
+	if err != nil {
+		return err
+	}
+	dockerClient, closer, err := transport.Connect(ctx)
+	if err != nil {
+		return fmt.Errorf("verifying Docker socket: %w", err)
+	}
+	defer closer.Close()
+	ping, err := dockerClient.Ping(ctx, client.PingOptions{})
+	if err != nil {
+		err = docker.ClassifyConnectionError(err)
+		return fmt.Errorf("verifying Docker socket: %s", docker.ErrorMessage(err))
+	}
+	fmt.Fprintf(out, "Docker socket: ok (API %s)\n", ping.APIVersion)
+
+	if isNew {
+		if err := config.Add(selected); err != nil {
+			return err
+		}
+		if err := config.Save(); err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(out, "Target %s is ready.\n", selected.Name)
+	return nil
+}
+
 func (t *targetAddCommand) run(cmd *cobra.Command, args []string) error {
 	config, err := target.Load()
 	if err != nil {
@@ -257,4 +368,19 @@ func (t *targetDefaultCommand) run(cmd *cobra.Command, args []string) error {
 
 	fmt.Fprintf(cmd.OutOrStdout(), "Default target is now %s\n", args[0])
 	return nil
+}
+
+func confirmTargetSetup(cmd *cobra.Command) (bool, error) {
+	fmt.Fprint(cmd.OutOrStdout(), "Prepare this target now? [y/N]: ")
+	reader := bufio.NewReader(cmd.InOrStdin())
+	line, err := reader.ReadString('\n')
+	if err != nil && line == "" {
+		return false, fmt.Errorf("reading confirmation: %w", err)
+	}
+	switch strings.ToLower(strings.TrimSpace(line)) {
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, nil
+	}
 }

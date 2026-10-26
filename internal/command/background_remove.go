@@ -7,7 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ikioma-ai/oma/internal/docker"
 	"github.com/ikioma-ai/oma/internal/service"
+	"github.com/ikioma-ai/oma/internal/target"
 )
 
 type backgroundUninstallCommand struct {
@@ -32,15 +34,24 @@ func (b *backgroundUninstallCommand) run(cmd *cobra.Command, args []string) erro
 		return fmt.Errorf("must be run as root")
 	}
 
+	config, err := target.Load()
+	if err != nil {
+		return err
+	}
+	selected, err := config.Resolve(targetFlag(cmd), os.Getenv("OMA_TARGET"))
+	if err != nil {
+		return err
+	}
+	namespace := namespaceFor(cmd, selected)
+
 	ctx := context.Background()
-	namespace := namespaceFlag(cmd)
 
 	svc, err := service.New()
 	if err != nil {
 		return err
 	}
 
-	serviceName := namespace + backgroundServiceSuffix
+	serviceName := backgroundServiceName(namespace, selected.Name)
 
 	if !svc.IsInstalled(serviceName) {
 		fmt.Printf("Service %s is not installed\n", svc.ServiceName(serviceName))
@@ -53,4 +64,8 @@ func (b *backgroundUninstallCommand) run(cmd *cobra.Command, args []string) erro
 
 	fmt.Printf("Uninstalled %s\n", svc.ServiceName(serviceName))
 	return nil
+}
+
+func localBackgroundServiceName(namespace string) string {
+	return backgroundServiceName(namespace, docker.LocalTargetName)
 }

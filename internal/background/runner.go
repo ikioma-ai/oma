@@ -9,6 +9,7 @@ import (
 
 	"github.com/ikioma-ai/oma/internal/brand"
 	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/target"
 	"github.com/ikioma-ai/oma/internal/userstats"
 	"github.com/ikioma-ai/oma/internal/version"
 )
@@ -16,20 +17,33 @@ import (
 const CheckInterval = 5 * time.Minute
 
 type Runner struct {
-	namespace string
+	namespace  string
+	targetName string
+	transport  target.Transport
+	userStats  bool
 }
 
 func NewRunner(namespace string) *Runner {
+	return NewRunnerForTarget(namespace, docker.LocalTargetName, target.LocalTransport{})
+}
+
+func NewRunnerForTarget(namespace, targetName string, transport target.Transport) *Runner {
 	return &Runner{
-		namespace: namespace,
+		namespace:  namespace,
+		targetName: targetName,
+		transport:  transport,
+		userStats:  targetName == docker.LocalTargetName,
 	}
 }
 
 func (r *Runner) Run(ctx context.Context) error {
-	slog.Info("Starting background runner", "namespace", r.namespace, "check_interval", CheckInterval)
+	slog.Info("Starting background runner", "namespace", r.namespace, "target", r.targetName,
+		"backup_destination", "controller", "check_interval", CheckInterval)
 
-	scraper := userstats.NewScraper(r.namespace)
-	go scraper.Run(ctx)
+	if r.userStats {
+		scraper := userstats.NewScraper(r.namespace)
+		go scraper.Run(ctx)
+	}
 
 	ticker := time.NewTicker(CheckInterval)
 	defer ticker.Stop()
@@ -52,10 +66,29 @@ func (r *Runner) Run(ctx context.Context) error {
 // Private
 
 func (r *Runner) check(ctx context.Context) (bool, error) {
-	ns, err := docker.RestoreNamespace(ctx, r.namespace)
+	client, closer, err := r.transport.Connect(ctx)
 	if err != nil {
+		return false, fmt.Errorf("connecting to target %q: %w", r.targetName, err)
+	}
+
+	options := []docker.NamespaceOption{
+		docker.WithClient(client),
+		docker.WithTargetName(r.targetName),
+	}
+	if closer != nil {
+		options = append(options, docker.WithCloser(closer))
+	}
+
+	ns, err := docker.RestoreNamespace(ctx, r.namespace, options...)
+	if err != nil {
+		if closer != nil {
+			_ = closer.Close()
+		} else {
+			_ = client.Close()
+		}
 		return false, fmt.Errorf("restoring namespace: %w", err)
 	}
+	defer ns.Close()
 
 	state, err := ns.LoadState(ctx)
 	if err != nil {

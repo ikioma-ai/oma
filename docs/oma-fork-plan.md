@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phases 1–2 complete; Phase 3 in progress (V1–V4 complete, V5 next)
+Status: Phases 1–3 complete; Phase 4 (automation and hardening) next
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -590,7 +590,7 @@ Exit criteria:
 
 ### Phase 3: Remote targets
 
-Status: V1–V4 complete; V5 (target setup and automation) next. The selected shape is transport-abstracted with a background-runner seam.
+Status: Phase 3 complete. V1–V5 delivered; the selected shape is transport-abstracted with a background-runner seam.
 
 V1 delivered target configuration, the implicit local target, `oma target add/list/remove/default`, `--target` and `OMA_TARGET` resolution, the local transport contract, and Docker client injection into namespace construction.
 
@@ -599,6 +599,8 @@ V2 delivered the OpenSSH streamlocal transport, short socket lifecycle, typed SS
 V3 delivered the active-target dashboard title, the `t` target switcher, transport-based state rebuild on switch, old-tunnel cleanup, and failed-switch preservation of the current target.
 
 V4 delivered remote proxy metrics through an SSH forward, explicit unavailable host metrics for remote targets, `--no-verify` for deploy and catalog apply, non-destructive verification cleanup, and controller-side backup labeling.
+
+V5 delivered explicit `target setup` and read-only `target check`, Docker and docker-group bootstrap with manual fallback, target-aware background units and `background run --target`, a shared Docker-state operation lock for deploy/update/apply/backup/restore, and controller-offline documentation.
 
 Artifacts:
 

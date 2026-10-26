@@ -1,12 +1,14 @@
 package command
 
 import (
+	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ikioma-ai/oma/internal/background"
+	"github.com/ikioma-ai/oma/internal/target"
 )
 
 type backgroundRunCommand struct {
@@ -28,10 +30,22 @@ func newBackgroundRunCommand() *backgroundRunCommand {
 // Private
 
 func (b *backgroundRunCommand) run(cmd *cobra.Command, args []string) error {
+	config, err := target.Load()
+	if err != nil {
+		return err
+	}
+	selected, err := config.Resolve(targetFlag(cmd), os.Getenv("OMA_TARGET"))
+	if err != nil {
+		return err
+	}
+	transport, err := selected.Transport()
+	if err != nil {
+		return err
+	}
+
 	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	runner := background.NewRunner(namespaceFlag(cmd))
-
+	runner := background.NewRunnerForTarget(namespaceFor(cmd, selected), selected.Name, transport)
 	return runner.Run(ctx)
 }

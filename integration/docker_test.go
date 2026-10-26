@@ -59,6 +59,29 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestOperationLock(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	ns := newTestNamespace(t, "oma-lock-test")
+	require.NoError(t, ns.EnsureNetwork(ctx))
+	require.NoError(t, ns.Proxy().Boot(ctx, getProxyPorts(t)))
+
+	lock, err := ns.AcquireOperation(ctx, "backup")
+	require.NoError(t, err)
+	defer lock.Release(context.Background())
+
+	_, err = ns.AcquireOperation(ctx, "deploy")
+	require.ErrorIs(t, err, docker.ErrOperationLocked)
+
+	require.NoError(t, lock.Release(ctx))
+	second, err := ns.AcquireOperation(ctx, "deploy")
+	require.NoError(t, err)
+	require.NoError(t, second.Release(ctx))
+}
+
 func TestDockerDeployment(t *testing.T) {
 	t.Parallel()
 

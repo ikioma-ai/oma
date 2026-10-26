@@ -1,6 +1,7 @@
 package target
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -186,4 +187,21 @@ func TestSSHTransportSelected(t *testing.T) {
 	}).Transport()
 	require.NoError(t, err)
 	assert.IsType(t, SSHTransport{}, transport)
+}
+
+func TestSSHHost(t *testing.T) {
+	assert.Equal(t, "example.com", sshHost("deploy@example.com"))
+	assert.Equal(t, "::1", sshHost("deploy@[::1]:22"))
+	assert.Equal(t, "localhost", sshHost("localhost"))
+}
+
+func TestManualSetupCommands(t *testing.T) {
+	commands := manualSetupCommands("deploy")
+	assert.Contains(t, commands, "get.docker.com")
+	assert.Contains(t, commands, "usermod -aG docker 'deploy'")
+}
+
+func TestSetupRejectsLocal(t *testing.T) {
+	_, err := Setup(context.Background(), Target{Name: "local", Local: true}, func(string) {})
+	require.Error(t, err)
 }

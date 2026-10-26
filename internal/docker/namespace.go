@@ -215,6 +215,10 @@ func (n *Namespace) EnsureNetwork(ctx context.Context) error {
 }
 
 func (n *Namespace) Teardown(ctx context.Context, destroyVolumes bool) error {
+	if _, err := n.client.ContainerRemove(ctx, n.name+"-lock", client.ContainerRemoveOptions{Force: true}); err != nil && !errdefs.IsNotFound(err) {
+		return err
+	}
+
 	for _, app := range n.applications {
 		if err := app.Destroy(ctx, destroyVolumes); err != nil {
 			return err

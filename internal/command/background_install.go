@@ -8,7 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ikioma-ai/oma/internal/docker"
 	"github.com/ikioma-ai/oma/internal/service"
+	"github.com/ikioma-ai/oma/internal/target"
 )
 
 type backgroundInstallCommand struct {
@@ -35,8 +37,17 @@ func (b *backgroundInstallCommand) run(cmd *cobra.Command, args []string) error 
 		return fmt.Errorf("must be run as root")
 	}
 
+	config, err := target.Load()
+	if err != nil {
+		return err
+	}
+	selected, err := config.Resolve(targetFlag(cmd), os.Getenv("OMA_TARGET"))
+	if err != nil {
+		return err
+	}
+	namespace := namespaceFor(cmd, selected)
+
 	ctx := context.Background()
-	namespace := namespaceFlag(cmd)
 
 	execPath, err := executablePath()
 	if err != nil {
@@ -48,14 +59,14 @@ func (b *backgroundInstallCommand) run(cmd *cobra.Command, args []string) error 
 		return err
 	}
 
-	serviceName := namespace + backgroundServiceSuffix
+	serviceName := backgroundServiceName(namespace, selected.Name)
 
 	if svc.IsInstalled(serviceName) {
 		fmt.Printf("Service %s is already installed\n", svc.ServiceName(serviceName))
 		return nil
 	}
 
-	if err := svc.Install(ctx, serviceName, execPath, namespace); err != nil {
+	if err := svc.Install(ctx, serviceName, execPath, namespace, selected.Name); err != nil {
 		return fmt.Errorf("installing service: %w", err)
 	}
 
@@ -71,4 +82,11 @@ func executablePath() (string, error) {
 		return "", err
 	}
 	return filepath.EvalSymlinks(exe)
+}
+
+func backgroundServiceName(namespace, targetName string) string {
+	if targetName == docker.LocalTargetName {
+		return namespace + backgroundServiceSuffix
+	}
+	return namespace + "-" + targetName + backgroundServiceSuffix
 }

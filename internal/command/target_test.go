@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -134,4 +135,33 @@ func TestRootRegistersTargetCheckCommand(t *testing.T) {
 	cmd, _, err := root.cmd.Find([]string{"target", "check"})
 	require.NoError(t, err)
 	assert.Equal(t, "check", cmd.Name())
+}
+
+func TestTargetSetupUnknownRequiresSSH(t *testing.T) {
+	setTargetConfigHome(t)
+
+	c := newTargetSetupCommand()
+	err := c.run(c.cmd, []string{"missing"})
+	require.Error(t, err)
+}
+
+func TestTargetSetupRejectsLocal(t *testing.T) {
+	setTargetConfigHome(t)
+
+	c := newTargetSetupCommand()
+	c.yes = true
+	err := c.run(c.cmd, []string{"local"})
+	require.Error(t, err)
+}
+
+func TestConfirmTargetSetup(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.SetIn(strings.NewReader("y\n"))
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	ok, err := confirmTargetSetup(cmd)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	assert.Contains(t, out.String(), "Prepare this target")
 }

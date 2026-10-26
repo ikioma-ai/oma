@@ -97,7 +97,7 @@ func installFakeSSH(t *testing.T, script string) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "ssh")
 	require.NoError(t, os.WriteFile(path, []byte(script), 0o755))
-	t.Setenv("PATH", dir)
+	t.Setenv("PATH", dir+":/bin:/usr/bin")
 }
 
 func TestSSHMetricsArgs(t *testing.T) {
