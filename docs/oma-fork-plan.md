@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 in progress (V1–V2 and V5–V6 complete; V3 macOS and V4 public VPS pending)
+Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 shaped and sliced
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -661,6 +661,20 @@ Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The instal
 4. Test a clean VPS target.
 5. Test a home/LAN target and a Docker-free controller.
 6. Document install, rollback, release checks, and the no-migration boundary.
+
+### Phase 6: Remote autonomy, supply chain, storage
+
+Status: shaped and sliced; implementation starts after Phase 5 hardware validation.
+
+Shape: [`docs/phase-6/shaping.md`](phase-6/shaping.md) · Slices: [`docs/phase-6/slices.md`](phase-6/slices.md)
+
+Workstreams, in dependency order:
+
+1. **Supply chain** — sign release checksums and agent artifacts; verify in installer, updater, and agent installation.
+2. **Agent** — install a signed target-local Oma runner over SSH; explicit automation ownership; no public listener.
+3. **Object storage** — S3-compatible backups from the agent/runner with target-local credentials, retention, and restore.
+
+The existing controller-driven target model remains the default. Fleet scheduling, a network agent API, and non-S3 providers are out of scope.
 
 ### Upstream maintenance policy
 
