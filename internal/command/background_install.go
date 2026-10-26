@@ -8,13 +8,15 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ikioma-ai/oma/internal/background"
 	"github.com/ikioma-ai/oma/internal/docker"
 	"github.com/ikioma-ai/oma/internal/service"
 	"github.com/ikioma-ai/oma/internal/target"
 )
 
 type backgroundInstallCommand struct {
-	cmd *cobra.Command
+	cmd        *cobra.Command
+	backupRole string
 }
 
 const backgroundServiceSuffix = "-background"
@@ -27,6 +29,7 @@ func newBackgroundInstallCommand() *backgroundInstallCommand {
 		Args:  cobra.NoArgs,
 		RunE:  b.run,
 	}
+	b.cmd.Flags().StringVar(&b.backupRole, "backup-role", background.BackupRoleController, "backup role: controller or target")
 	return b
 }
 
@@ -42,6 +45,10 @@ func (b *backgroundInstallCommand) run(cmd *cobra.Command, args []string) error 
 		return err
 	}
 	selected, err := config.Resolve(targetFlag(cmd), os.Getenv("OMA_TARGET"))
+	if err != nil {
+		return err
+	}
+	role, err := background.ValidateBackupRole(b.backupRole, selected.Name)
 	if err != nil {
 		return err
 	}
@@ -66,7 +73,7 @@ func (b *backgroundInstallCommand) run(cmd *cobra.Command, args []string) error 
 		return nil
 	}
 
-	if err := svc.Install(ctx, serviceName, execPath, namespace, selected.Name); err != nil {
+	if err := svc.Install(ctx, serviceName, execPath, namespace, selected.Name, role); err != nil {
 		return fmt.Errorf("installing service: %w", err)
 	}
 

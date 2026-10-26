@@ -12,19 +12,20 @@ import (
 )
 
 type settingsFlags struct {
-	host         string
-	disableTLS   bool
-	env          []string
-	smtpServer   string
-	smtpPort     string
-	smtpUsername string
-	smtpPassword string
-	smtpFrom     string
-	cpus         int
-	memory       int
-	autoUpdate   bool
-	backupPath   string
-	autoBackup   bool
+	host              string
+	disableTLS        bool
+	env               []string
+	smtpServer        string
+	smtpPort          string
+	smtpUsername      string
+	smtpPassword      string
+	smtpFrom          string
+	cpus              int
+	memory            int
+	autoUpdate        bool
+	backupPath        string
+	autoBackup        bool
+	backupDestination string
 
 	registryUsername      string
 	registryPassword      string
@@ -45,6 +46,7 @@ func (f *settingsFlags) register(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&f.autoUpdate, "auto-update", true, "automatically update the application")
 	cmd.Flags().StringVar(&f.backupPath, "backup-path", "", "path for backups")
 	cmd.Flags().BoolVar(&f.autoBackup, "auto-backup", false, "enable automatic backups")
+	cmd.Flags().StringVar(&f.backupDestination, "backup-destination", "", "backup destination: controller or target")
 	cmd.Flags().StringVar(&f.registryUsername, "registry-username", "", "registry username for pulling the application image")
 	cmd.Flags().StringVar(&f.registryPassword, "registry-password", "", "registry password for pulling the application image")
 	cmd.Flags().BoolVar(&f.registryPasswordStdin, "registry-password-stdin", false, "read the registry password from stdin")
@@ -79,8 +81,9 @@ func (f *settingsFlags) buildSettings(cmd *cobra.Command, image, host string) (d
 		},
 		AutoUpdate: f.autoUpdate,
 		Backup: docker.BackupSettings{
-			Path:       f.backupPath,
-			AutoBackup: f.autoBackup,
+			Path:        f.backupPath,
+			AutoBackup:  f.autoBackup,
+			Destination: f.backupDestination,
 		},
 	}
 
@@ -157,6 +160,9 @@ func (f *settingsFlags) applyChanges(cmd *cobra.Command, existing docker.Applica
 	}
 	if cmd.Flags().Changed("auto-backup") {
 		s.Backup.AutoBackup = f.autoBackup
+	}
+	if cmd.Flags().Changed("backup-destination") {
+		s.Backup.Destination = f.backupDestination
 	}
 	usernameChanged := cmd.Flags().Changed("registry-username")
 	passwordChanged := cmd.Flags().Changed("registry-password") || cmd.Flags().Changed("registry-password-stdin")

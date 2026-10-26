@@ -18,7 +18,7 @@ After=network.target docker.service
 
 [Service]
 Type=simple
-ExecStart=%s background run --namespace %s --target %s
+ExecStart=%s background run --namespace %s --target %s --backup-role %s
 Restart=always
 RestartSec=5
 
@@ -33,14 +33,14 @@ func (s *Systemd) IsInstalled(name string) bool {
 	return err == nil
 }
 
-func (s *Systemd) Install(ctx context.Context, name, execPath, namespace, targetName string) error {
+func (s *Systemd) Install(ctx context.Context, name, execPath, namespace, targetName, backupRole string) error {
 	path := s.unitFilePath(name)
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("creating systemd directory: %w", err)
 	}
 
-	unitContent := fmt.Sprintf(unitTemplate, namespace, targetName, execPath, namespace, targetName)
+	unitContent := fmt.Sprintf(unitTemplate, namespace, targetName, execPath, namespace, targetName, backupRole)
 
 	if err := os.WriteFile(path, []byte(unitContent), 0o644); err != nil {
 		return fmt.Errorf("writing unit file: %w", err)

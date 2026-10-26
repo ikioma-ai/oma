@@ -8,7 +8,7 @@ import (
 
 type Service interface {
 	IsInstalled(name string) bool
-	Install(ctx context.Context, name, execPath, namespace, targetName string) error
+	Install(ctx context.Context, name, execPath, namespace, targetName, backupRole string) error
 	Remove(ctx context.Context, name string) error
 	ServiceName(name string) string
 }

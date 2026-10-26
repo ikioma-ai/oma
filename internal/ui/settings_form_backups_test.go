@@ -9,12 +9,25 @@ import (
 	"github.com/ikioma-ai/oma/internal/docker"
 )
 
-func TestSettingsFormBackupsLabelsControllerPathForRemoteTarget(t *testing.T) {
+func TestSettingsFormBackupsShowsControllerDestinationForRemoteTarget(t *testing.T) {
 	ns, err := docker.NewNamespace("test", docker.WithTargetName("vps"))
 	require.NoError(t, err)
 
 	app := docker.NewApplication(ns, docker.ApplicationSettings{Name: "remote"})
 	form := NewSettingsFormBackups(app, nil)
 
-	assert.Contains(t, form.View(), "on this controller")
+	assert.Contains(t, form.StatusLine(), "controller")
+}
+
+func TestSettingsFormBackupsShowsTargetRunnerRequirement(t *testing.T) {
+	ns, err := docker.NewNamespace("test", docker.WithTargetName("vps"))
+	require.NoError(t, err)
+
+	app := docker.NewApplication(ns, docker.ApplicationSettings{
+		Name:   "remote",
+		Backup: docker.BackupSettings{Destination: docker.BackupDestinationTarget, Path: "/backups"},
+	})
+	form := NewSettingsFormBackups(app, nil)
+
+	assert.Contains(t, form.StatusLine(), "target runner is required")
 }

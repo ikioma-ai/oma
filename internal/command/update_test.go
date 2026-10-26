@@ -127,6 +127,23 @@ func TestApplyChanges(t *testing.T) {
 		assert.ErrorIs(t, err, docker.ErrAutoBackupWithoutPath)
 	})
 
+	t.Run("set backup destination", func(t *testing.T) {
+		cmd, f := newCmd()
+		require.NoError(t, cmd.Flags().Set("backup-destination", docker.BackupDestinationTarget))
+
+		result, err := f.applyChanges(cmd, existing, existing.Image)
+		require.NoError(t, err)
+		assert.Equal(t, docker.BackupDestinationTarget, result.Backup.Destination)
+	})
+
+	t.Run("invalid backup destination", func(t *testing.T) {
+		cmd, f := newCmd()
+		require.NoError(t, cmd.Flags().Set("backup-destination", "elsewhere"))
+
+		_, err := f.applyChanges(cmd, existing, existing.Image)
+		assert.ErrorIs(t, err, docker.ErrBackupDestinationInvalid)
+	})
+
 	t.Run("clear backup path with auto-backup enabled", func(t *testing.T) {
 		cmd, f := newCmd()
 		require.NoError(t, cmd.Flags().Set("backup-path", ""))

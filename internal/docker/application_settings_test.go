@@ -248,6 +248,44 @@ func TestEnvVarsEqualDiffers(t *testing.T) {
 	assert.False(t, base.Equal(none))
 }
 
+func TestBackupSettingsValidate(t *testing.T) {
+	base := ApplicationSettings{Name: "app", Image: "img:latest"}
+
+	t.Run("default destination", func(t *testing.T) {
+		s := base
+		s.Backup.Path = "/backups"
+		require.NoError(t, s.Validate())
+		assert.Equal(t, BackupDestinationController, s.Backup.DestinationOrDefault())
+	})
+
+	t.Run("controller destination", func(t *testing.T) {
+		s := base
+		s.Backup.Destination = BackupDestinationController
+		s.Backup.Path = "/backups"
+		require.NoError(t, s.Validate())
+	})
+
+	t.Run("target destination", func(t *testing.T) {
+		s := base
+		s.Backup.Destination = BackupDestinationTarget
+		s.Backup.Path = "/backups"
+		require.NoError(t, s.Validate())
+		assert.Equal(t, BackupDestinationTarget, s.Backup.DestinationOrDefault())
+	})
+
+	t.Run("target destination without path", func(t *testing.T) {
+		s := base
+		s.Backup.Destination = BackupDestinationTarget
+		assert.ErrorIs(t, s.Validate(), ErrBackupDestinationWithoutPath)
+	})
+
+	t.Run("invalid destination", func(t *testing.T) {
+		s := base
+		s.Backup.Destination = "somewhere"
+		assert.ErrorIs(t, s.Validate(), ErrBackupDestinationInvalid)
+	})
+}
+
 func TestRegistrySettingsValidate(t *testing.T) {
 	base := ApplicationSettings{Name: "app", Image: "img:latest"}
 

@@ -16,11 +16,17 @@ import (
 
 const CheckInterval = 5 * time.Minute
 
+const (
+	BackupRoleController = "controller"
+	BackupRoleTarget     = "target"
+)
+
 type Runner struct {
 	namespace  string
 	targetName string
 	transport  target.Transport
 	userStats  bool
+	backupRole string
 }
 
 func NewRunner(namespace string) *Runner {
@@ -28,17 +34,50 @@ func NewRunner(namespace string) *Runner {
 }
 
 func NewRunnerForTarget(namespace, targetName string, transport target.Transport) *Runner {
+	return NewRunnerForTargetWithRole(namespace, targetName, transport, BackupRoleController)
+}
+
+func NewRunnerForTargetWithRole(namespace, targetName string, transport target.Transport, backupRole string) *Runner {
 	return &Runner{
 		namespace:  namespace,
 		targetName: targetName,
 		transport:  transport,
 		userStats:  targetName == docker.LocalTargetName,
+		backupRole: backupRole,
 	}
 }
 
+func NormalizeBackupRole(role string) (string, error) {
+	switch role {
+	case "", BackupRoleController:
+		return BackupRoleController, nil
+	case BackupRoleTarget:
+		return BackupRoleTarget, nil
+	default:
+		return "", fmt.Errorf("backup role must be %q or %q", BackupRoleController, BackupRoleTarget)
+	}
+}
+
+func ValidateBackupRole(role, targetName string) (string, error) {
+	role, err := NormalizeBackupRole(role)
+	if err != nil {
+		return "", err
+	}
+	if role == BackupRoleTarget && targetName != docker.LocalTargetName {
+		return "", fmt.Errorf("target backup role requires the local target")
+	}
+	return role, nil
+}
+
 func (r *Runner) Run(ctx context.Context) error {
+	role, err := ValidateBackupRole(r.backupRole, r.targetName)
+	if err != nil {
+		return err
+	}
+	r.backupRole = role
+
 	slog.Info("Starting background runner", "namespace", r.namespace, "target", r.targetName,
-		"backup_destination", "controller", "check_interval", CheckInterval)
+		"backup_role", r.backupRole, "check_interval", CheckInterval)
 
 	if r.userStats {
 		scraper := userstats.NewScraper(r.namespace)
@@ -95,7 +134,7 @@ func (r *Runner) check(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("loading state: %w", err)
 	}
 
-	if r.checkSelfUpdate(ctx, ns, state) {
+	if r.backupRole == BackupRoleController && r.checkSelfUpdate(ctx, ns, state) {
 		return true, nil
 	}
 
@@ -104,11 +143,24 @@ func (r *Runner) check(ctx context.Context) (bool, error) {
 			continue
 		}
 
-		r.checkUpdate(ctx, app, state)
+		if r.backupRole == BackupRoleController {
+			r.checkUpdate(ctx, app, state)
+		}
 		r.checkBackup(ctx, app, state)
 	}
 
 	return false, nil
+}
+
+func (r *Runner) backupAppliesTo(destination string) bool {
+	switch r.backupRole {
+	case BackupRoleController:
+		return destination == docker.BackupDestinationController
+	case BackupRoleTarget:
+		return destination == docker.BackupDestinationTarget
+	default:
+		return false
+	}
 }
 
 func (r *Runner) checkSelfUpdate(ctx context.Context, ns *docker.Namespace, state *docker.State) bool {
@@ -161,6 +213,15 @@ func (r *Runner) checkBackup(ctx context.Context, app *docker.Application, state
 	if !app.Settings.Backup.AutoBackup {
 		return
 	}
+
+	destination := app.Settings.Backup.DestinationOrDefault()
+	if !r.backupAppliesTo(destination) {
+		if r.backupRole == BackupRoleController && destination == docker.BackupDestinationTarget {
+			slog.Warn("Skipping target-side backup; target runner required", "app", app.Settings.Name, "target", r.targetName)
+		}
+		return
+	}
+
 	if !state.BackupDue(app.Settings.Name) {
 		return
 	}

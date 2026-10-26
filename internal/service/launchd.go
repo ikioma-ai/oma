@@ -32,6 +32,8 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 		<string>%s</string>
 		<string>--target</string>
 		<string>%s</string>
+		<string>--backup-role</string>
+		<string>%s</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
@@ -50,11 +52,11 @@ func (l *Launchd) IsInstalled(name string) bool {
 	return err == nil
 }
 
-func (l *Launchd) Install(ctx context.Context, name, execPath, namespace, targetName string) error {
+func (l *Launchd) Install(ctx context.Context, name, execPath, namespace, targetName, backupRole string) error {
 	label := l.label(name)
 	path := l.plistPath(name)
 
-	plistContent := fmt.Sprintf(plistTemplate, label, execPath, namespace, targetName)
+	plistContent := fmt.Sprintf(plistTemplate, label, execPath, namespace, targetName, backupRole)
 
 	if err := os.WriteFile(path, []byte(plistContent), 0o644); err != nil {
 		return fmt.Errorf("writing plist file: %w", err)

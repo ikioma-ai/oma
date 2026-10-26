@@ -20,17 +20,19 @@ import (
 )
 
 var (
-	ErrApplicationExists     = errors.New("application already exists")
-	ErrHostnameInUse         = errors.New("hostname already in use")
-	ErrHostRequired          = errors.New("host is required")
-	ErrInvalidBackup         = errors.New("invalid backup archive")
-	ErrImageRequired         = errors.New("image is required")
-	ErrApplicationNotRunning = errors.New("the application is not running")
-	ErrBackupPathRelative    = errors.New("backup path must be absolute")
-	ErrBackupFileExists      = errors.New("backup file already exists")
-	ErrAutoBackupWithoutPath = errors.New("auto-backup requires a backup path")
-	ErrSetupFailed           = errors.New("setup failed")
-	ErrPullFailed            = &describedError{
+	ErrApplicationExists            = errors.New("application already exists")
+	ErrHostnameInUse                = errors.New("hostname already in use")
+	ErrHostRequired                 = errors.New("host is required")
+	ErrInvalidBackup                = errors.New("invalid backup archive")
+	ErrImageRequired                = errors.New("image is required")
+	ErrApplicationNotRunning        = errors.New("the application is not running")
+	ErrBackupPathRelative           = errors.New("backup path must be absolute")
+	ErrBackupFileExists             = errors.New("backup file already exists")
+	ErrAutoBackupWithoutPath        = errors.New("auto-backup requires a backup path")
+	ErrBackupDestinationInvalid     = errors.New("backup destination must be controller or target")
+	ErrBackupDestinationWithoutPath = errors.New("backup destination requires a backup path")
+	ErrSetupFailed                  = errors.New("setup failed")
+	ErrPullFailed                   = &describedError{
 		msg:         "pull failed",
 		description: "Failed to download the application image. Check that the image name is correct and try again.",
 	}

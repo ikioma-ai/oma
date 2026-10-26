@@ -92,9 +92,22 @@ type ContainerResources struct {
 	MemoryMB int `json:"memoryMB,omitempty"`
 }
 
+const (
+	BackupDestinationController = "controller"
+	BackupDestinationTarget     = "target"
+)
+
 type BackupSettings struct {
-	Path       string `json:"path,omitempty"`
-	AutoBackup bool   `json:"autoBackup,omitempty"`
+	Path        string `json:"path,omitempty"`
+	AutoBackup  bool   `json:"autoBackup,omitempty"`
+	Destination string `json:"destination,omitempty"`
+}
+
+func (b BackupSettings) DestinationOrDefault() string {
+	if b.Destination == "" {
+		return BackupDestinationController
+	}
+	return b.Destination
 }
 
 type StorageMount struct {
@@ -141,6 +154,14 @@ func (s ApplicationSettings) Marshal() string {
 func (s ApplicationSettings) Validate() error {
 	if s.Image == "" {
 		return ErrImageRequired
+	}
+	switch s.Backup.Destination {
+	case "", BackupDestinationController, BackupDestinationTarget:
+	default:
+		return ErrBackupDestinationInvalid
+	}
+	if s.Backup.Destination == BackupDestinationTarget && s.Backup.Path == "" {
+		return ErrBackupDestinationWithoutPath
 	}
 	if s.Backup.AutoBackup && s.Backup.Path == "" {
 		return ErrAutoBackupWithoutPath

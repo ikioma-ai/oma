@@ -409,6 +409,7 @@ func TestSettingsFormBackups_ActionReadsCurrentFieldValue(t *testing.T) {
 	backupsPressTab(&form)
 	backupsPressTab(&form)
 	backupsPressTab(&form)
+	backupsPressTab(&form)
 	assert.Equal(t, form.form.actionIndex(), form.form.Focused(), "action button focused")
 
 	result, cmd := form.Update(keyPressMsg("enter"))
@@ -438,7 +439,8 @@ func TestSettingsFormBackups_Submit(t *testing.T) {
 	// Toggle auto-backup
 	backupsPressSpace(&form)
 
-	// Tab to Done
+	// Tab past the destination checkbox to Done
+	backupsPressTab(&form)
 	backupsPressTab(&form)
 
 	result, cmd := form.Update(keyPressMsg("enter"))
@@ -449,6 +451,28 @@ func TestSettingsFormBackups_Submit(t *testing.T) {
 	require.True(t, ok, "expected SettingsSectionSubmitMsg, got %T", msg)
 	assert.Equal(t, "/my/backups", submitMsg.Settings.Backup.Path)
 	assert.True(t, submitMsg.Settings.Backup.AutoBackup)
+	assert.Equal(t, docker.BackupDestinationController, submitMsg.Settings.Backup.Destination)
+}
+
+func TestSettingsFormBackups_SubmitTargetDestination(t *testing.T) {
+	app := &docker.Application{
+		Settings: docker.ApplicationSettings{Name: "chat"},
+	}
+	form := NewSettingsFormBackups(app, nil)
+
+	backupsTypeText(&form, "/my/backups")
+	backupsPressTab(&form) // auto-backup
+	backupsPressTab(&form) // destination
+	backupsPressSpace(&form)
+	assert.Contains(t, form.StatusLine(), "target runner is required")
+
+	backupsPressTab(&form) // Done
+	result, cmd := form.Update(keyPressMsg("enter"))
+	form = result.(SettingsFormBackups)
+	require.NotNil(t, cmd)
+	submitMsg, ok := cmd().(SettingsSectionSubmitMsg)
+	require.True(t, ok)
+	assert.Equal(t, docker.BackupDestinationTarget, submitMsg.Settings.Backup.Destination)
 }
 
 // Helpers

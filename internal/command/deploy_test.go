@@ -66,6 +66,20 @@ func TestBuildSettingsImageRequired(t *testing.T) {
 	assert.ErrorIs(t, err, docker.ErrImageRequired)
 }
 
+func TestBuildSettingsBackupDestination(t *testing.T) {
+	f := &settingsFlags{
+		backupPath:        "/backups",
+		backupDestination: docker.BackupDestinationTarget,
+	}
+	settings, err := f.buildSettings(&cobra.Command{}, "image:latest", "app.example.com")
+	require.NoError(t, err)
+	assert.Equal(t, docker.BackupDestinationTarget, settings.Backup.Destination)
+
+	f.backupDestination = "elsewhere"
+	_, err = f.buildSettings(&cobra.Command{}, "image:latest", "app.example.com")
+	assert.ErrorIs(t, err, docker.ErrBackupDestinationInvalid)
+}
+
 func TestBuildSettingsAutoBackupRequiresPath(t *testing.T) {
 	t.Run("auto-backup without path", func(t *testing.T) {
 		f := &settingsFlags{autoBackup: true}

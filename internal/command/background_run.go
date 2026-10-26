@@ -12,7 +12,8 @@ import (
 )
 
 type backgroundRunCommand struct {
-	cmd *cobra.Command
+	cmd        *cobra.Command
+	backupRole string
 }
 
 func newBackgroundRunCommand() *backgroundRunCommand {
@@ -24,6 +25,7 @@ func newBackgroundRunCommand() *backgroundRunCommand {
 		Hidden: true,
 		RunE:   b.run,
 	}
+	b.cmd.Flags().StringVar(&b.backupRole, "backup-role", background.BackupRoleController, "backup role: controller or target")
 	return b
 }
 
@@ -46,6 +48,11 @@ func (b *backgroundRunCommand) run(cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	runner := background.NewRunnerForTarget(namespaceFor(cmd, selected), selected.Name, transport)
+	role, err := background.ValidateBackupRole(b.backupRole, selected.Name)
+	if err != nil {
+		return err
+	}
+
+	runner := background.NewRunnerForTargetWithRole(namespaceFor(cmd, selected), selected.Name, transport, role)
 	return runner.Run(ctx)
 }

@@ -1,13 +1,13 @@
 # Hardening — Slices
 
-Status: Phase 4 in progress; V1 complete, V2 next
+Status: Phase 4 in progress; V1–V2 complete, V3 next
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/hardening.md`](../../specs/hardening.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
 
 | V1: Release Checksums | V2: Target-Side Backups | V3: Backup Transfer | V4: LAN TLS | V5: Controller-Only Installer |
 |---|---|---|---|---|
-| ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
 | • Installer verifies SHA-256<br>• Self-updater verifies SHA-256<br>• Fail closed | • Explicit backup destination<br>• Target runner path<br>• Target-side writes | • List target backups<br>• Download archive<br>• Restore download | • TLS `custom` mode<br>• Certificate/key validation<br>• Proxy TLS flags | • Skip local Docker<br>• Install binary/service<br>• Clear local errors |
 | *Demo: corrupt download is rejected* | *Demo: target writes a backup while controller sleeps* | *Demo: download and restore a target backup* | *Demo: LAN app with trusted certificate* | *Demo: install controller without Docker* |
 
@@ -77,9 +77,20 @@ COMPLETE
 
 Stop the controller after starting a target-side backup; confirm the target runner completes the archive and the controller can later discover it.
 
+### Target runner setup (manual)
+
+1. Install Oma on the target host.
+2. Reinstall its background service as the target backup role if the installer already created the default controller-role service:
+   ```sh
+   sudo oma background uninstall
+   sudo oma background install --backup-role target
+   ```
+3. Set the application's backup destination to `target` and its backup location to an absolute path writable on the target.
+4. Keep the controller's background service on the default `controller` role; it skips target-side backups and reports that the target runner is required.
+
 ### Status
 
-PENDING
+COMPLETE
 
 ## V3: Backup Transfer
 
