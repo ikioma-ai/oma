@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 in progress (V1 complete; V2 hostname chosen, deployment blocked on servers/DNS)
+Status: Phase 4 complete; Phase 5 in progress (V1 complete; V2 DNS ready, deployment blocked on SSH/firewall)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -521,7 +521,7 @@ Status: complete.
 1. [x] Rename the module path and all imports.
 2. [x] Rename the binary and command paths.
 3. [x] Replace repository, image namespaces, service labels, state directories, and user-visible product strings.
-   - Installer host is `get.oma.ikioma.ai`; deployment servers and DNS remain pending.
+   - Installer host is `get.oma.ikioma.ai`; DNS points at `85.9.222.162`; deployment requires SSH/firewall access.
 4. [x] Centralize new branding in `internal/brand`.
 5. [x] Update the license and add a modification notice while retaining the MIT notice.
 6. [x] Update GitHub workflows, Kamal config, installer image references, and release asset names.
@@ -649,7 +649,7 @@ Exit criteria:
 
 ### Phase 5: Release
 
-Status: in progress; V1 (release artifacts) complete; V2 hostname `get.oma.ikioma.ai` selected, live deployment blocked on servers/DNS.
+Status: in progress; V1 (release artifacts) complete; V2 DNS `get.oma.ikioma.ai` → `85.9.222.162`, deployment blocked on SSH/firewall.
 
 Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md) · Spec: [`specs/release.md`](../specs/release.md)
 

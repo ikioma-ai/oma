@@ -1,6 +1,6 @@
 # Installer Host Deployment
 
-Status: hostname selected (`get.oma.ikioma.ai`); live deployment requires servers and DNS.
+Status: DNS points `get.oma.ikioma.ai` at `85.9.222.162`; deployment requires SSH/firewall access.
 
 ## Inputs
 
@@ -32,8 +32,8 @@ Edit `config/deploy.local.yml`:
 
 ## DNS and ports
 
-- Create an A/AAAA record for the installer hostname pointing at the server(s).
-- Allow inbound TCP 80 and 443.
+- DNS is configured in DNSimple: `get.oma.ikioma.ai` A → `85.9.222.162` (record `87812721`, TTL 300).
+- Allow inbound TCP 22 for deployment, and TCP 80/443 for public installer traffic.
 - Let Kamal provision HTTPS through its proxy; do not point the hostname at an old installer.
 
 ## Deploy
@@ -72,7 +72,8 @@ Verify `/up` and the install routes again. A binary release is forward-fixed wit
 
 ## First-release checklist
 
-- [ ] `get.oma.ikioma.ai` resolves.
+- [x] `get.oma.ikioma.ai` resolves to `85.9.222.162`.
+- [ ] TCP 22, 80, and 443 are reachable.
 - [ ] Ports 80/443 reachable.
 - [ ] GHCR installer package is public or server credentials are configured.
 - [ ] `config/deploy.local.yml` points at an immutable release tag.

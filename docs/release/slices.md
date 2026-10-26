@@ -1,6 +1,6 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1 complete, V2 hostname selected (live deployment blocked on servers and DNS)
+Status: Phase 5 in progress; V1 complete, V2 hostname/DNS selected (deployment blocked on SSH/firewall)
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
@@ -75,7 +75,7 @@ From a clean workstation, request `https://<installer-host>/up` and the install 
 
 ### Status
 
-PENDING — hostname `get.oma.ikioma.ai` selected; DNS and servers are required.
+PENDING — DNS points `get.oma.ikioma.ai` at `85.9.222.162`; SSH/ports are required.
 
 ## V3: Clean Local Installs
 
