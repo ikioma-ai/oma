@@ -2,7 +2,7 @@
 
 Status: shape selected, breadboarded, ready to slice
 Selected shape: **A — Controller-driven Docker over SSH, transport-abstracted**
-Related: [`slices.md`](slices.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Related: [`slices.md`](slices.md) · [`../../specs/remote-targets.md`](../../specs/remote-targets.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Frame
 

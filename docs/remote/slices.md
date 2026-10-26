@@ -2,7 +2,7 @@
 
 Selected shape: **A — Controller-driven Docker over SSH, transport-abstracted**
 Ground truth for R, fit check, parts, and breadboard: [`shaping.md`](shaping.md)
-Related: [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Related: [`../../specs/remote-targets.md`](../../specs/remote-targets.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 Each slice is vertical and ends with a demo-able operator surface. Slices may land as separate commits or pull requests, but each keeps the build and tests green.
 

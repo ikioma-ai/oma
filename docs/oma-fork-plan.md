@@ -596,6 +596,7 @@ Artifacts:
 
 - [`docs/remote/shaping.md`](remote/shaping.md): requirements, shapes, fit check, selected parts, breadboard.
 - [`docs/remote/slices.md`](remote/slices.md): V1–V5 slices, sliced breadboard, acceptance criteria.
+- [`specs/remote-targets.md`](../specs/remote-targets.md): multi-slice behavioral spec, validated by `nmux spec validate`.
 
 1. Add `internal/target` and config loading.
 2. Add `oma target add`, `list`, and `remove`.
