@@ -32,6 +32,10 @@ func TestInstallScript_VerifiesChecksum(t *testing.T) {
 		log, err := os.ReadFile(f.logPath)
 		require.NoError(t, err)
 		assert.Contains(t, string(log), "background install")
+
+		dockerLog, err := os.ReadFile(f.dockerLogPath)
+		require.NoError(t, err)
+		assert.Contains(t, string(dockerLog), "info")
 	})
 
 	t.Run("mismatched checksum aborts", func(t *testing.T) {
@@ -96,15 +100,41 @@ func TestInstallScript_VerifiesChecksum(t *testing.T) {
 	})
 }
 
+func TestInstallScript_ControllerOnly(t *testing.T) {
+	f := newInstallFixture(t)
+	binary := []byte("#!/bin/sh\nif [ \"$1\" = \"background\" ]; then echo \"background install\" >> \"$OMA_TEST_LOG\"; else echo \"tui started\" >> \"$OMA_TEST_LOG\"; fi\n")
+	f.writeAsset(t, binary, sha256Hex(binary))
+
+	code, output := f.run(t, "OMA_LOCAL_DOCKER=false")
+	require.Equal(t, 0, code, output)
+
+	assert.Contains(t, output, "Controller-only install complete")
+	assert.Contains(t, output, "oma target add")
+	assert.Contains(t, output, "oma target setup")
+
+	installed := filepath.Join(f.installDir, "oma")
+	_, err := os.Stat(installed)
+	require.NoError(t, err)
+
+	log, err := os.ReadFile(f.logPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(log), "background install")
+	assert.NotContains(t, string(log), "tui started")
+
+	_, err = os.Stat(f.dockerLogPath)
+	assert.True(t, os.IsNotExist(err), "controller-only install must not probe Docker")
+}
+
 // Helpers
 
 type installFixture struct {
-	dir          string
-	binDir       string
-	installDir   string
-	fixturesDir  string
-	checksumPath string
-	logPath      string
+	dir           string
+	binDir        string
+	installDir    string
+	fixturesDir   string
+	checksumPath  string
+	logPath       string
+	dockerLogPath string
 }
 
 func newInstallFixture(t *testing.T) *installFixture {
@@ -112,12 +142,13 @@ func newInstallFixture(t *testing.T) *installFixture {
 
 	dir := t.TempDir()
 	f := &installFixture{
-		dir:          dir,
-		binDir:       filepath.Join(dir, "bin"),
-		installDir:   filepath.Join(dir, "install"),
-		fixturesDir:  filepath.Join(dir, "fixtures"),
-		checksumPath: filepath.Join(dir, "fixtures", "checksums.txt"),
-		logPath:      filepath.Join(dir, "background.log"),
+		dir:           dir,
+		binDir:        filepath.Join(dir, "bin"),
+		installDir:    filepath.Join(dir, "install"),
+		fixturesDir:   filepath.Join(dir, "fixtures"),
+		checksumPath:  filepath.Join(dir, "fixtures", "checksums.txt"),
+		logPath:       filepath.Join(dir, "background.log"),
+		dockerLogPath: filepath.Join(dir, "docker.log"),
 	}
 	require.NoError(t, os.MkdirAll(f.binDir, 0o755))
 	require.NoError(t, os.MkdirAll(f.installDir, 0o755))
@@ -131,7 +162,10 @@ case "$1" in
 *) exit 1 ;;
 esac
 `)
-	f.writeExecutable(t, "docker", "#!/bin/sh\nexit 0\n")
+	f.writeExecutable(t, "docker", `#!/bin/sh
+ echo "$*" >> "$OMA_DOCKER_LOG"
+ exit 0
+`)
 	f.writeExecutable(t, "sudo", "#!/bin/sh\nexec \"$@\"\n")
 	f.writeExecutable(t, "curl", `#!/bin/sh
 out=""
@@ -183,7 +217,7 @@ func (f *installFixture) writeRelease(t *testing.T, withChecksums bool) {
 	require.NoError(t, os.WriteFile(filepath.Join(f.fixturesDir, "release.json"), []byte(release), 0o644))
 }
 
-func (f *installFixture) run(t *testing.T) (int, string) {
+func (f *installFixture) run(t *testing.T, extraEnv ...string) (int, string) {
 	t.Helper()
 
 	var script bytes.Buffer
@@ -197,8 +231,10 @@ func (f *installFixture) run(t *testing.T) (int, string) {
 		"OMA_INSTALL_DIR="+f.installDir,
 		"OMA_INTERACTIVE=false",
 		"OMA_TEST_LOG="+f.logPath,
+		"OMA_DOCKER_LOG="+f.dockerLogPath,
 		"FIXTURES="+f.fixturesDir,
 	)
+	cmd.Env = append(cmd.Env, extraEnv...)
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		return 0, string(output)

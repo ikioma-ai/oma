@@ -10,9 +10,21 @@ OMA_BIN=''
 main() {
   os=$(detect_os)
   arch=$(detect_arch)
-  ensure_docker "$os"
+  local_docker="${OMA_LOCAL_DOCKER:-true}"
+
+  if [ "$local_docker" != "false" ]; then
+    ensure_docker "$os"
+  fi
+
   fetch_latest_release
   install_oma "$arch"
+
+  if [ "$local_docker" = "false" ]; then
+    echo "Controller-only install complete; local Docker was not required."
+    echo "Configure a remote target with 'oma target add' and 'oma target setup'."
+    echo "Then run 'oma --target <name> list' to manage it."
+    return
+  fi
 
   if [ "${OMA_INTERACTIVE:-}" = "false" ]; then
     echo "Oma is installed. Run 'oma' to get started."

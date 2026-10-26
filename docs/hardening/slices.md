@@ -1,13 +1,13 @@
 # Hardening — Slices
 
-Status: Phase 4 in progress; V1–V4 complete, V5 next
+Status: Phase 4 complete; V1–V5 delivered. Phase 5 (release) next.
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/hardening.md`](../../specs/hardening.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
 
 | V1: Release Checksums | V2: Target-Side Backups | V3: Backup Transfer | V4: LAN TLS | V5: Controller-Only Installer |
 |---|---|---|---|---|
-| ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE | ⏳ PENDING |
+| ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE |
 | • Installer verifies SHA-256<br>• Self-updater verifies SHA-256<br>• Fail closed | • Explicit backup destination<br>• Target runner path<br>• Target-side writes | • List target backups<br>• Download archive<br>• Restore download | • TLS `custom` mode<br>• Certificate/key validation<br>• Proxy TLS flags | • Skip local Docker<br>• Install binary/service<br>• Clear local errors |
 | *Demo: corrupt download is rejected* | *Demo: target writes a backup while controller sleeps* | *Demo: download and restore a target backup* | *Demo: LAN app with trusted certificate* | *Demo: install controller without Docker* |
 
@@ -183,9 +183,15 @@ COMPLETE
 
 Install with `OMA_LOCAL_DOCKER=false` on a Docker-free host, add a fake SSH target, and run `oma --target vps list`.
 
+Example invocation:
+
+```sh
+curl -fsSL https://get.oma.example | OMA_LOCAL_DOCKER=false sh
+```
+
 ### Status
 
-PENDING
+COMPLETE
 
 ## Deferred
 
