@@ -34,11 +34,67 @@ const (
 )
 
 func (a *Application) Backup(ctx context.Context) error {
+	if a.Settings.Backup.Destination == BackupDestinationObject {
+		return a.BackupToObject(ctx)
+	}
 	if a.Settings.Backup.Path == "" {
 		return fmt.Errorf("backup location is required")
 	}
 
 	return a.BackupToFile(ctx, a.Settings.Backup.Path, a.BackupName())
+}
+
+func (a *Application) BackupToObject(ctx context.Context) error {
+	config, err := LoadObjectStorageConfig()
+	if err != nil {
+		return err
+	}
+	store, err := config.Store()
+	if err != nil {
+		return err
+	}
+
+	lock, err := a.acquireOperation(ctx, "backup")
+	if err != nil {
+		return err
+	}
+	defer releaseOperation(lock)
+
+	file, err := os.CreateTemp("", "oma-object-backup-*.tar.gz")
+	if err != nil {
+		return fmt.Errorf("creating temporary backup: %w", err)
+	}
+	tempPath := file.Name()
+	defer os.Remove(tempPath)
+	defer file.Close()
+
+	if err := a.backupToWriter(ctx, file); err != nil {
+		a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, err) })
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, err) })
+		return fmt.Errorf("syncing temporary backup: %w", err)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, err) })
+		return fmt.Errorf("stating temporary backup: %w", err)
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, err) })
+		return fmt.Errorf("rewinding temporary backup: %w", err)
+	}
+
+	key := config.ObjectKey(a.Settings.Name, time.Now())
+	if err := store.Upload(ctx, key, file, info.Size()); err != nil {
+		a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, err) })
+		slog.Error("Object backup failed", "app", a.Settings.Name, "key", key, "error", err)
+		return err
+	}
+	a.saveOperationResult(ctx, func(s *State) { s.RecordBackup(a.Settings.Name, nil) })
+	slog.Info("Created object backup", "app", a.Settings.Name, "key", key)
+	return nil
 }
 
 func (a *Application) BackupName() string {
@@ -88,7 +144,22 @@ func (a *Application) BackupToFile(ctx context.Context, dir string, name string)
 	return nil
 }
 
+func (a *Application) TrimObjectBackups() error {
+	config, err := LoadObjectStorageConfig()
+	if err != nil {
+		return err
+	}
+	store, err := config.Store()
+	if err != nil {
+		return err
+	}
+	return store.Trim(context.Background(), a.Settings.Name, time.Now().Add(-BackupRetention))
+}
+
 func (a *Application) TrimBackups() error {
+	if a.Settings.Backup.Destination == BackupDestinationObject {
+		return a.TrimObjectBackups()
+	}
 	if a.Settings.Backup.Path == "" {
 		return nil
 	}

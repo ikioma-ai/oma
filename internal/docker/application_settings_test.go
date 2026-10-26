@@ -279,6 +279,13 @@ func TestBackupSettingsValidate(t *testing.T) {
 		assert.ErrorIs(t, s.Validate(), ErrBackupDestinationWithoutPath)
 	})
 
+	t.Run("object destination allows auto-backup without path", func(t *testing.T) {
+		s := base
+		s.Backup.Destination = BackupDestinationObject
+		s.Backup.AutoBackup = true
+		require.NoError(t, s.Validate())
+	})
+
 	t.Run("invalid destination", func(t *testing.T) {
 		s := base
 		s.Backup.Destination = "somewhere"

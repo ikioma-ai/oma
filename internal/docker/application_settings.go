@@ -95,6 +95,7 @@ type ContainerResources struct {
 const (
 	BackupDestinationController = "controller"
 	BackupDestinationTarget     = "target"
+	BackupDestinationObject     = "object"
 )
 
 type BackupSettings struct {
@@ -164,14 +165,14 @@ func (s ApplicationSettings) Validate() error {
 		return ErrImageRequired
 	}
 	switch s.Backup.Destination {
-	case "", BackupDestinationController, BackupDestinationTarget:
+	case "", BackupDestinationController, BackupDestinationTarget, BackupDestinationObject:
 	default:
 		return ErrBackupDestinationInvalid
 	}
 	if s.Backup.Destination == BackupDestinationTarget && s.Backup.Path == "" {
 		return ErrBackupDestinationWithoutPath
 	}
-	if s.Backup.AutoBackup && s.Backup.Path == "" {
+	if s.Backup.AutoBackup && s.Backup.Path == "" && s.Backup.Destination != BackupDestinationObject {
 		return ErrAutoBackupWithoutPath
 	}
 	if s.Registry.Password != "" && s.Registry.Username == "" {

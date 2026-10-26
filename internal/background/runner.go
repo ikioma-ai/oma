@@ -185,7 +185,7 @@ func (r *Runner) backupAppliesTo(destination string) bool {
 	case BackupRoleController:
 		return destination == docker.BackupDestinationController
 	case BackupRoleTarget:
-		return destination == docker.BackupDestinationTarget
+		return destination == docker.BackupDestinationTarget || destination == docker.BackupDestinationObject
 	default:
 		return false
 	}
