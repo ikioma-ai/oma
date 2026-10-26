@@ -94,6 +94,26 @@ func withApplication(ns *docker.Namespace, host string, action string, fn func(*
 }
 
 func WithNamespace(fn NamespaceRunE) func(*cobra.Command, []string) error {
+	return withTargetNamespace(func(ctx context.Context, ns *docker.Namespace, _ target.Target, _ target.Transport, cmd *cobra.Command, args []string) error {
+		return fn(ctx, ns, cmd, args)
+	})
+}
+
+type targetFilesRunE func(ctx context.Context, ns *docker.Namespace, selected target.Target, files target.FileTransport, cmd *cobra.Command, args []string) error
+
+func withTargetFiles(fn targetFilesRunE) func(*cobra.Command, []string) error {
+	return withTargetNamespace(func(ctx context.Context, ns *docker.Namespace, selected target.Target, transport target.Transport, cmd *cobra.Command, args []string) error {
+		files, ok := transport.(target.FileTransport)
+		if !ok {
+			return fmt.Errorf("target %q does not support file transfer", selected.Name)
+		}
+		return fn(ctx, ns, selected, files, cmd, args)
+	})
+}
+
+type targetNamespaceRunE func(ctx context.Context, ns *docker.Namespace, selected target.Target, transport target.Transport, cmd *cobra.Command, args []string) error
+
+func withTargetNamespace(fn targetNamespaceRunE) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
@@ -134,7 +154,7 @@ func WithNamespace(fn NamespaceRunE) func(*cobra.Command, []string) error {
 		}
 		defer ns.Close()
 
-		return fn(ctx, ns, cmd, args)
+		return fn(ctx, ns, selected, transport, cmd, args)
 	}
 }
 

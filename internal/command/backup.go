@@ -22,6 +22,8 @@ func newBackupCommand() *backupCommand {
 		Args:  cobra.ExactArgs(2),
 		RunE:  WithNamespace(b.run),
 	}
+	b.cmd.AddCommand(newBackupListCommand().cmd)
+	b.cmd.AddCommand(newBackupDownloadCommand().cmd)
 	return b
 }
 

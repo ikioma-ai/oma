@@ -1,6 +1,6 @@
 # Hardening — Shaping
 
-Status: workstreams selected; V1–V2 implemented, V3 next
+Status: workstreams selected; V1–V3 implemented, V4 next
 Phase: 4 — automation and hardening
 Related: [`slices.md`](slices.md) · [`../../specs/hardening.md`](../../specs/hardening.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
