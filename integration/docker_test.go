@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1150,6 +1151,26 @@ func newTestNamespace(t *testing.T, base string) *docker.Namespace {
 	return ns
 }
 
+func registryAuth(image string) string {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		return ""
+	}
+	authenticator, err := authn.DefaultKeychain.Resolve(ref.Context())
+	if err != nil || authenticator == authn.Anonymous {
+		return ""
+	}
+	auth, err := authenticator.Authorization()
+	if err != nil {
+		return ""
+	}
+	data, err := json.Marshal(auth)
+	if err != nil {
+		return ""
+	}
+	return base64.URLEncoding.EncodeToString(data)
+}
+
 func pullImages(ctx context.Context, images ...string) error {
 	c, err := client.New(client.FromEnv)
 	if err != nil {
@@ -1158,7 +1179,7 @@ func pullImages(ctx context.Context, images ...string) error {
 	defer c.Close()
 
 	for _, img := range images {
-		reader, err := c.ImagePull(ctx, img, client.ImagePullOptions{})
+		reader, err := c.ImagePull(ctx, img, client.ImagePullOptions{RegistryAuth: registryAuth(img)})
 		if err != nil {
 			return fmt.Errorf("pulling %s: %w", img, err)
 		}
