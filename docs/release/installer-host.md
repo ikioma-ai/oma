@@ -1,6 +1,6 @@
 # Installer Host Deployment
 
-Status: DNS points `get.oma.ikioma.ai` at `85.9.222.162`; deployment requires SSH/firewall access.
+Status: deployed and verified at `https://get.oma.ikioma.ai` using test image `v2-validation-a71cce0`.
 
 ## Inputs
 
@@ -43,6 +43,16 @@ cd installer
 kamal -c config/deploy.local.yml deploy
 ```
 
+## Current deployment
+
+- Server: `85.9.222.162`
+- Kamal application: `oma-installer`
+- Test image: `ghcr.io/ikioma-ai/oma-installer:v2-validation-a71cce0`
+- HTTPS: Let's Encrypt through Kamal proxy
+- Health: `https://get.oma.ikioma.ai/up` returns `OK`
+- Routes: `/`, `/apps.json`, and `/apps/{id}` verified
+- Rollback: deployed `v2-validation-a71cce0-prev`, then redeployed `v2-validation-a71cce0`; both passed `/up`
+
 ## Verify
 
 Use the hostname, not a local installer process:
@@ -73,7 +83,8 @@ Verify `/up` and the install routes again. A binary release is forward-fixed wit
 ## First-release checklist
 
 - [x] `get.oma.ikioma.ai` resolves to `85.9.222.162`.
-- [ ] TCP 22, 80, and 443 are reachable.
+- [x] TCP 22, 80, and 443 are reachable.
+- [x] HTTPS `/up` returns `200 OK`.
 - [ ] Ports 80/443 reachable.
 - [ ] GHCR installer package is public or server credentials are configured.
 - [ ] `config/deploy.local.yml` points at an immutable release tag.

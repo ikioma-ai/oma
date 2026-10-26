@@ -1,13 +1,13 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1 complete, V2 hostname/DNS selected (deployment blocked on SSH/firewall)
+Status: Phase 5 in progress; V1–V2 complete, V3 next
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
 
 | V1: Release Artifacts | V2: Installer Host | V3: Clean Local Installs |
 |---|---|---|
-| ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ✅ COMPLETE | ⏳ PENDING |
 | • Tag-driven CI<br>• Four binaries + checksums<br>• Installer image in GHCR | • Final hostname<br>• DNS and TLS<br>• Kamal deploy + health | • Docker-free Linux<br>• macOS with Docker Desktop<br>• Verified install script |
 | *Demo: tagged release and pullable installer image* | *Demo: HTTPS `/up` and install script* | *Demo: install on two clean hosts* |
 
@@ -75,7 +75,7 @@ From a clean workstation, request `https://<installer-host>/up` and the install 
 
 ### Status
 
-PENDING — DNS points `get.oma.ikioma.ai` at `85.9.222.162`; SSH/ports are required.
+COMPLETE
 
 ## V3: Clean Local Installs
 

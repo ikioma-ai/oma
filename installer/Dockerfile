@@ -11,6 +11,8 @@ RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -trimpath -o installer .
 
 FROM scratch
 
+LABEL service="oma-installer"
+
 COPY --from=builder /app/installer /installer
 
 EXPOSE 80

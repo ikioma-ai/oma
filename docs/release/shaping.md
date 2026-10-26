@@ -1,6 +1,6 @@
 # Release — Shaping
 
-Status: shape selected; V1 implemented, V2 hostname selected
+Status: shape selected; V1–V2 implemented, V3 next
 Phase: 5 — release
 Related: [`slices.md`](slices.md) · [`../../specs/release.md`](../../specs/release.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 

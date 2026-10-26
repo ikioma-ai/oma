@@ -9,6 +9,7 @@ servers:
 
 proxy:
   host: get.oma.ikioma.ai
+  ssl: true
 
 ssh:
   user: app
