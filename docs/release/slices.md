@@ -1,6 +1,6 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1–V2 complete, V3 Linux complete / macOS pending
+Status: Phase 5 in progress; V1–V2 complete; V3 macOS pending; V4 remote-VM pass, public VPS pending
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
@@ -135,7 +135,7 @@ From a clean controller install, prepare a fresh VPS, deploy an app, disconnect 
 
 ### Status
 
-PENDING
+PARTIAL — validated with released `v0.4.2` against a fresh Ubuntu 24.04 Linux VM over SSH: target setup, Docker, custom-TLS HTTPS, app deploy, controller disconnect, backup, remove, and restore all passed. A public cloud VPS with provider DNS/firewall/ACME remains pending.
 
 ## V5: Home/LAN and Controller-Only
 

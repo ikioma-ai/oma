@@ -1,6 +1,6 @@
 # Release — Shaping
 
-Status: shape selected; V1–V2 implemented, V3 Linux complete / macOS pending
+Status: shape selected; V1–V2 implemented, V3 macOS pending, V4 remote-VM pass
 Phase: 5 — release
 Related: [`slices.md`](slices.md) · [`../../specs/release.md`](../../specs/release.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
