@@ -30,6 +30,14 @@ func TestObjectStorageConfigValidate(t *testing.T) {
 	require.Error(t, relative.Validate())
 }
 
+func TestObjectArchiveName(t *testing.T) {
+	assert.True(t, isObjectArchiveName("chat-20261026-120000.tar.gz"))
+	assert.False(t, isObjectArchiveName("../chat.tar.gz"))
+	assert.False(t, isObjectArchiveName("prefix/chat.tar.gz"))
+	assert.False(t, isObjectArchiveName(`chat\\..\\chat.tar.gz`))
+	assert.False(t, isObjectArchiveName("chat.tar.gz\n"))
+}
+
 func TestObjectStorageObjectKey(t *testing.T) {
 	config := ObjectStorageConfig{Prefix: "oma/backups"}
 	key := config.ObjectKey("chat", time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC))

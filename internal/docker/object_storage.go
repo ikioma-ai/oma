@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -76,7 +77,7 @@ func (c ObjectStorageConfig) ObjectKey(appName string, t time.Time) string {
 	return path.Join(c.Prefix, name)
 }
 
-func (c ObjectStorageConfig) Store() (*objectStore, error) {
+func (c ObjectStorageConfig) Store() (*ObjectStore, error) {
 	u, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return nil, err
@@ -89,15 +90,15 @@ func (c ObjectStorageConfig) Store() (*objectStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating object storage client: %w", err)
 	}
-	return &objectStore{client: client, config: c}, nil
+	return &ObjectStore{client: client, config: c}, nil
 }
 
-type objectStore struct {
+type ObjectStore struct {
 	client *minio.Client
 	config ObjectStorageConfig
 }
 
-func (s *objectStore) Upload(ctx context.Context, key string, r io.Reader, size int64) error {
+func (s *ObjectStore) Upload(ctx context.Context, key string, r io.Reader, size int64) error {
 	if _, err := s.client.StatObject(ctx, s.config.Bucket, key, minio.StatObjectOptions{}); err == nil {
 		return fmt.Errorf("object %q already exists", key)
 	} else if minio.ToErrorResponse(err).Code != "NoSuchKey" && minio.ToErrorResponse(err).Code != "NotFound" {
@@ -114,7 +115,67 @@ func (s *objectStore) Upload(ctx context.Context, key string, r io.Reader, size 
 	return nil
 }
 
-func (s *objectStore) Trim(ctx context.Context, appName string, cutoff time.Time) error {
+type ObjectArchive struct {
+	Name     string    `json:"name"`
+	Size     int64     `json:"size"`
+	Modified time.Time `json:"modified"`
+}
+
+func (s *ObjectStore) List(ctx context.Context) ([]ObjectArchive, error) {
+	prefix := ""
+	if s.config.Prefix != "" {
+		prefix = strings.TrimSuffix(s.config.Prefix, "/") + "/"
+	}
+
+	var archives []ObjectArchive
+	for object := range s.client.ListObjects(ctx, s.config.Bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	}) {
+		if object.Err != nil {
+			return nil, fmt.Errorf("listing object backups: %w", object.Err)
+		}
+		name := strings.TrimPrefix(object.Key, prefix)
+		if name == object.Key || !isObjectArchiveName(name) {
+			continue
+		}
+		archives = append(archives, ObjectArchive{Name: name, Size: object.Size, Modified: object.LastModified})
+	}
+	return archives, nil
+}
+
+func (s *ObjectStore) Download(ctx context.Context, name string, w io.Writer) error {
+	if !isObjectArchiveName(name) {
+		return fmt.Errorf("invalid object archive name %q", name)
+	}
+	key := name
+	if s.config.Prefix != "" {
+		key = path.Join(s.config.Prefix, name)
+	}
+
+	object, err := s.client.GetObject(ctx, s.config.Bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("opening object %q: %w", key, err)
+	}
+	defer object.Close()
+
+	if _, err := io.Copy(w, object); err != nil {
+		return fmt.Errorf("downloading object %q: %w", key, err)
+	}
+	return nil
+}
+
+func isObjectArchiveName(name string) bool {
+	if name == "" || name == "." || name == ".." || name != path.Base(name) {
+		return false
+	}
+	if strings.ContainsAny(name, "/\\\x00\n\r") {
+		return false
+	}
+	return strings.HasSuffix(name, ".tar.gz")
+}
+
+func (s *ObjectStore) Trim(ctx context.Context, appName string, cutoff time.Time) error {
 	prefix := appName + "-"
 	if s.config.Prefix != "" {
 		prefix = path.Join(s.config.Prefix, prefix)

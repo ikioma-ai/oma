@@ -44,6 +44,32 @@ func (c SSHCommand) Run(ctx context.Context, script string) (string, string, err
 	return stdout.String(), stderr.String(), nil
 }
 
+func (c SSHCommand) RunTo(ctx context.Context, command string, output io.Writer) error {
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrSSHNotFound, err)
+	}
+
+	cmd := exec.CommandContext(ctx, sshPath,
+		"-o", "BatchMode=yes",
+		"-o", "ConnectTimeout=10",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
+		c.Destination,
+		command,
+	)
+	cmd.Stdout = output
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("SSH command failed: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+
+	return nil
+}
+
 func (c SSHCommand) RunInput(ctx context.Context, command string, input io.Reader) (string, string, error) {
 	sshPath, err := exec.LookPath("ssh")
 	if err != nil {
@@ -250,4 +276,8 @@ func sshHost(destination string) string {
 		host = host[:colon]
 	}
 	return host
+}
+
+func ShellQuote(value string) string {
+	return shellQuote(value)
 }

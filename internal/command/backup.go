@@ -24,6 +24,7 @@ func newBackupCommand() *backupCommand {
 	}
 	b.cmd.AddCommand(newBackupListCommand().cmd)
 	b.cmd.AddCommand(newBackupDownloadCommand().cmd)
+	b.cmd.AddCommand(newBackupObjectCommand().cmd)
 	return b
 }
 

@@ -29,6 +29,7 @@ func newTargetCommand() *targetCommand {
 
 	t.cmd.AddCommand(newTargetAddCommand().cmd)
 	t.cmd.AddCommand(newTargetAgentCommand().cmd)
+	t.cmd.AddCommand(newTargetBackupsCommand().cmd)
 	t.cmd.AddCommand(newTargetStorageCommand().cmd)
 	t.cmd.AddCommand(newTargetCheckCommand().cmd)
 	t.cmd.AddCommand(newTargetDefaultCommand().cmd)
