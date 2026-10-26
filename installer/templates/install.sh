@@ -2,7 +2,7 @@
 set -eu
 
 REPO='ikioma-ai/oma'
-INSTALL_DIR='/usr/local/bin'
+INSTALL_DIR="${OMA_INSTALL_DIR:-/usr/local/bin}"
 INSTALL_REF='{{ .InstallRef }}'
 RELEASE_JSON=''
 OMA_BIN=''
@@ -103,8 +103,30 @@ install_oma() {
     exit 1
   fi
 
+  checksum_url=$(get_asset_url "checksums.txt")
+  if [ -z "$checksum_url" ]; then
+    echo "Release does not publish checksums.txt" >&2
+    exit 1
+  fi
+
+  checksum_file=$(mktemp)
+  download "$checksum_url" "$checksum_file" "application/octet-stream"
+
+  if ! expected_checksum=$(checksum_for_asset "$checksum_file" "$binary"); then
+    rm -f "$checksum_file"
+    echo "Could not find a valid checksum for ${binary}" >&2
+    exit 1
+  fi
+  rm -f "$checksum_file"
+
   tmpfile=$(mktemp)
   download "$asset_url" "$tmpfile" "application/octet-stream"
+
+  if ! verify_sha256 "$tmpfile" "$expected_checksum"; then
+    rm -f "$tmpfile"
+    echo "Checksum verification failed for ${binary}" >&2
+    exit 1
+  fi
 
   if is_root; then
     install -m 755 "$tmpfile" "${INSTALL_DIR}/oma"
@@ -161,6 +183,42 @@ get_asset_url() {
         }
         /"name":/ && index($0, "\"" binary "\"") { print u; exit }
     '
+}
+
+checksum_for_asset() {
+  checksum_file="$1"
+  binary="$2"
+
+  awk -v binary="$binary" '
+    {
+      if (NF != 2) { bad = 1; next }
+      digest = $1
+      asset = $2
+      sub(/^\*/, "", asset)
+      if (length(digest) != 64 || digest !~ /^[0-9a-f]+$/) { bad = 1; next }
+      if (asset == binary) { count++; expected = digest }
+    }
+    END {
+      if (bad || count != 1) exit 1
+      print expected
+    }
+  ' "$checksum_file"
+}
+
+verify_sha256() {
+  file="$1"
+  expected="$2"
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$file" | awk '{ print $1 }')
+  elif command -v shasum >/dev/null 2>&1; then
+    actual=$(shasum -a 256 "$file" | awk '{ print $1 }')
+  else
+    echo "sha256sum or shasum is required to verify downloads" >&2
+    return 1
+  fi
+
+  [ "$actual" = "$expected" ]
 }
 
 download() {

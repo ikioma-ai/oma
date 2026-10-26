@@ -1,13 +1,13 @@
 # Hardening — Slices
 
-Status: Phase 4 sliced; implementation pending
+Status: Phase 4 in progress; V1 complete, V2 next
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/hardening.md`](../../specs/hardening.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
 
 | V1: Release Checksums | V2: Target-Side Backups | V3: Backup Transfer | V4: LAN TLS | V5: Controller-Only Installer |
 |---|---|---|---|---|
-| ⏳ PENDING | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
 | • Installer verifies SHA-256<br>• Self-updater verifies SHA-256<br>• Fail closed | • Explicit backup destination<br>• Target runner path<br>• Target-side writes | • List target backups<br>• Download archive<br>• Restore download | • TLS `custom` mode<br>• Certificate/key validation<br>• Proxy TLS flags | • Skip local Docker<br>• Install binary/service<br>• Clear local errors |
 | *Demo: corrupt download is rejected* | *Demo: target writes a backup while controller sleeps* | *Demo: download and restore a target backup* | *Demo: LAN app with trusted certificate* | *Demo: install controller without Docker* |
 
@@ -43,7 +43,7 @@ Corrupt a downloaded binary and confirm the installer aborts; corrupt a self-upd
 
 ### Status
 
-PENDING
+COMPLETE
 
 ## V2: Target-Side Backups
 

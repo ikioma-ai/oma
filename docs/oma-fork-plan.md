@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phases 1–3 complete; Phase 4 shaped and sliced (implementation next)
+Status: Phases 1–3 complete; Phase 4 in progress (V1 complete, V2 next)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -627,7 +627,7 @@ Exit criteria:
 
 ### Phase 4: Automation and hardening
 
-Status: shaped and sliced; implementation next.
+Status: in progress; V1 (release checksums) complete, V2 next.
 
 Shape: [`docs/hardening/shaping.md`](hardening/shaping.md) · Slices: [`docs/hardening/slices.md`](hardening/slices.md) · Spec: [`specs/hardening.md`](../specs/hardening.md)
 

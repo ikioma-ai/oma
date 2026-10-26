@@ -1,7 +1,10 @@
 package version
 
 import (
+	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/ikioma-ai/oma/internal/brand"
@@ -16,6 +20,7 @@ import (
 
 const (
 	githubReleasesURL = brand.GitHubReleasesURL
+	checksumAssetName = "checksums.txt"
 	httpTimeout       = 30 * time.Second
 	updateTempFile    = "." + brand.Name + "-update-tmp"
 )
@@ -25,6 +30,7 @@ type Updater struct {
 	apiURL         string
 	client         *http.Client
 	githubToken    string
+	execPath       string
 }
 
 func NewUpdater() *Updater {
@@ -53,27 +59,39 @@ func (u *Updater) UpdateBinary() error {
 	}
 
 	assetName := fmt.Sprintf("%s-%s-%s", brand.Name, runtime.GOOS, runtime.GOARCH)
-	var downloadURL string
-	for _, a := range rel.Assets {
-		if a.Name == assetName {
-			downloadURL = a.URL
-			break
-		}
-	}
+	downloadURL := assetURL(rel, assetName)
 	if downloadURL == "" {
 		return fmt.Errorf("no release asset found for %s", assetName)
 	}
 
+	checksumURL := assetURL(rel, checksumAssetName)
+	if checksumURL == "" {
+		return fmt.Errorf("release does not publish %s", checksumAssetName)
+	}
+
+	expectedChecksum, err := u.fetchChecksum(checksumURL, assetName)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("Updating %s from %s to %s...\n", brand.DisplayName, u.currentVersion, rel.TagName)
 
-	execPath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("finding executable path: %w", err)
+	execPath := u.execPath
+	if execPath == "" {
+		execPath, err = os.Executable()
+		if err != nil {
+			return fmt.Errorf("finding executable path: %w", err)
+		}
 	}
 
 	tmpFile := filepath.Join(filepath.Dir(execPath), updateTempFile)
 	if err := u.downloadBinary(downloadURL, tmpFile); err != nil {
 		return err
+	}
+
+	if err := verifyFileChecksum(tmpFile, expectedChecksum); err != nil {
+		os.Remove(tmpFile)
+		return fmt.Errorf("verifying %s: %w", assetName, err)
 	}
 
 	if err := u.replaceBinary(execPath, tmpFile); err != nil {
@@ -94,6 +112,104 @@ type release struct {
 type asset struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+}
+
+func assetURL(rel *release, name string) string {
+	for _, a := range rel.Assets {
+		if a.Name == name {
+			return a.URL
+		}
+	}
+	return ""
+}
+
+func (u *Updater) fetchChecksum(url, assetName string) (string, error) {
+	resp, err := u.getAsset(url)
+	if err != nil {
+		return "", fmt.Errorf("fetching checksums: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("fetching checksums: unexpected status %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return "", fmt.Errorf("reading checksums: %w", err)
+	}
+
+	return checksumForAsset(data, assetName)
+}
+
+func checksumForAsset(data []byte, assetName string) (string, error) {
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	var expected string
+	found := false
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			return "", fmt.Errorf("malformed checksum file")
+		}
+
+		digest := fields[0]
+		name := strings.TrimPrefix(fields[1], "*")
+		if len(digest) != sha256.Size*2 || !isLowerHex(digest) {
+			return "", fmt.Errorf("malformed checksum for %s", name)
+		}
+		if name != assetName {
+			continue
+		}
+		if found {
+			return "", fmt.Errorf("duplicate checksum entry for %s", assetName)
+		}
+
+		expected = digest
+		found = true
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("reading checksums: %w", err)
+	}
+	if !found {
+		return "", fmt.Errorf("checksum for %s not found", assetName)
+	}
+
+	return expected, nil
+}
+
+func isLowerHex(s string) bool {
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+func verifyFileChecksum(path, expected string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("opening downloaded file: %w", err)
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return fmt.Errorf("hashing downloaded file: %w", err)
+	}
+
+	actual := hex.EncodeToString(h.Sum(nil))
+	if actual != expected {
+		return fmt.Errorf("checksum mismatch: expected %s, got %s", expected, actual)
+	}
+	return nil
 }
 
 func (u *Updater) get(url string) (*http.Response, error) {
@@ -126,16 +242,20 @@ func (u *Updater) fetchRelease() (*release, error) {
 	return &rel, nil
 }
 
-func (u *Updater) downloadBinary(url, dest string) error {
+func (u *Updater) getAsset(url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
-		return fmt.Errorf("downloading binary: %w", err)
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/octet-stream")
 	if u.githubToken != "" {
 		req.Header.Set("Authorization", "token "+u.githubToken)
 	}
-	resp, err := u.client.Do(req)
+	return u.client.Do(req)
+}
+
+func (u *Updater) downloadBinary(url, dest string) error {
+	resp, err := u.getAsset(url)
 	if err != nil {
 		return fmt.Errorf("downloading binary: %w", err)
 	}

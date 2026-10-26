@@ -46,7 +46,7 @@ dist: build-all
 			cp bin/$$os-$$arch/oma dist/oma-$$os-$$arch; \
 		done; \
 	done
-	cd dist && sha256sum oma-* > checksums.txt
+	cd dist && if command -v sha256sum >/dev/null 2>&1; then sha256sum oma-* > checksums.txt; else shasum -a 256 oma-* > checksums.txt; fi
 
 test-release:
 	-gh release delete $(TEST_RELEASE_TAG) --yes --cleanup-tag
