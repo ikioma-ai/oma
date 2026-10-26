@@ -181,7 +181,7 @@ Status: complete.
 
 - The dashboard header shows the active target name.
 - The target switcher lists configured targets and the default.
-- Switching targets closes the previous tunnel and rebuilds namespace, apps, metrics, and event subscriptions.
+- Switching targets closes the previous tunnel and rebuilds namespace, apps, and event subscriptions. Target-aware metrics are delivered in V4.
 - An SSH failure during switching keeps the previous target active and shows an error.
 - Local target switching has no tunnel overhead.
 - TUI tests cover the header, switcher, and failed switch.

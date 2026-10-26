@@ -66,7 +66,7 @@ This contract connects target configuration, command and TUI entry points, Docke
 - The SSH transport uses a short local socket and OpenSSH streamlocal forwarding to the remote Docker socket. It waits for readiness, fails on a missing or unusable SSH client, and removes the socket when the operation ends. [AC#2,AC#7]
 - Remote operations must use the injected target client. They must not read or mutate local Docker state. [AC#2]
 - SSH host-key and authentication failures, unreachable hosts, missing Docker, stopped Docker, and socket permission denial must produce distinct, actionable errors. [AC#1,AC#2]
-- The TUI must show the active target, allow switching, and rebuild namespace, apps, telemetry, and event subscriptions on a successful switch. A failed switch leaves the previous target active. [AC#3]
+- The TUI must show the active target, allow switching, and rebuild namespace, apps, and event subscriptions on a successful switch. Target-aware telemetry is delivered by the observability requirement. A failed switch leaves the previous target active. [AC#3,AC#4]
 - Proxy metrics for a remote target must come from the target proxy. Host CPU, memory, and disk must come from the target or be explicitly marked unavailable; controller values must never be shown as remote values. [AC#4]
 - Verification must be skippable for deploy and apply. A failed verification removes the new deployment but preserves the app data volume. [AC#5]
 - Remote backups default to a controller-side path and must be labeled as such in the TUI. A target-side path must not be implied. [AC#8]
@@ -178,7 +178,7 @@ This contract connects target configuration, command and TUI entry points, Docke
 
 - [ ] AC#1 (integration): Given no target configuration, when the operator runs `oma target list` and `oma --target local list`, then `local` is the default and behaves as before; after adding a named target, `--target`, `OMA_TARGET`, and the configured default resolve in that order, and an unknown target fails before any Docker call.
 - [ ] AC#2 (integration): Given a configured SSH target, when the operator runs list, deploy, start, stop, update, logs, exec, backup, restore, remove, and settings commands against it, then each operation succeeds through the remote Docker daemon, remote state changes are visible, and local Docker state is unchanged.
-- [ ] AC#3 (integration): Given a running TUI on the local target, when the operator switches to a remote target, then the header, app list, metrics, and event subscriptions reflect the remote target; when the switch fails, the previous target remains active.
+- [ ] AC#3 (integration): Given a running TUI on the local target, when the operator switches to a remote target, then the header, app list, and event subscriptions reflect the remote target; when the switch fails, the previous target remains active. Target-aware metrics are verified by AC#4.
 - [ ] AC#4 (integration): Given an active remote target, when the dashboard loads telemetry, then proxy metrics come from the target proxy, host metrics come from the target or show an explicit unavailable state, and controller metrics are never labeled as remote.
 - [ ] AC#5 (integration): Given a remote deploy or apply, when `--no-verify` is used, then post-deploy verification is skipped; when verification runs and fails, then the new deployment is removed and the app data volume remains.
 - [ ] AC#6 (integration): Given a supported Linux host with SSH and sudo access, when `oma target setup` runs with confirmation, then it installs Docker if missing, grants socket access, reconnects, verifies the socket, and reports DNS/firewall readiness without installing remote Oma; without sudo it fails with manual commands; on unsupported platforms automated setup is refused.
@@ -229,7 +229,7 @@ Deliver the active-target display and target switcher. The dashboard belongs to 
 **Acceptance Criteria:**
 - The dashboard header shows the active target.
 - The switcher lists configured targets and the default.
-- A successful switch rebuilds namespace, apps, metrics, and event subscriptions.
+- A successful switch rebuilds namespace, apps, and event subscriptions; target-aware metrics follow in `remote-observability`.
 - A failed switch leaves the previous target active and shows an actionable error.
 - Switching is blocked or confirmed while an operation is active.
 - TUI tests cover the header, switcher, successful switch, and failed switch.
