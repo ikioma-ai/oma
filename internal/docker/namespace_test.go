@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -113,4 +114,13 @@ func TestContainerAppName(t *testing.T) {
 	t.Run("no ID suffix", func(t *testing.T) {
 		assert.Equal(t, "", ns.containerAppName("oma-app-campfire"))
 	})
+}
+
+func TestNewNamespaceUsesInjectedClient(t *testing.T) {
+	c, err := client.New(client.WithHost("unix:///tmp/oma-does-not-exist.sock"))
+	require.NoError(t, err)
+
+	ns, err := NewNamespace("test", WithClient(c))
+	require.NoError(t, err)
+	assert.Same(t, c, ns.client)
 }

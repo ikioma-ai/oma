@@ -4,18 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ikioma-ai/oma/internal/brand"
 	"github.com/ikioma-ai/oma/internal/docker"
 	"github.com/ikioma-ai/oma/internal/logging"
+	"github.com/ikioma-ai/oma/internal/target"
 	"github.com/ikioma-ai/oma/internal/ui"
 )
 
 type RootCommand struct {
-	cmd       *cobra.Command
-	namespace string
+	cmd        *cobra.Command
+	namespace  string
+	targetName string
 
 	installImageRef string
 }
@@ -37,6 +40,7 @@ func NewRootCommand() *RootCommand {
 		}),
 	}
 	r.cmd.PersistentFlags().StringVarP(&r.namespace, "namespace", "n", docker.DefaultNamespace, "namespace for containers")
+	r.cmd.PersistentFlags().StringVar(&r.targetName, "target", "", "target to operate against")
 
 	r.cmd.Flags().StringVar(&r.installImageRef, "install", "", "Path to Docker image to install")
 
@@ -54,6 +58,7 @@ func NewRootCommand() *RootCommand {
 	r.cmd.AddCommand(newTeardownCommand().cmd)
 	r.cmd.AddCommand(newUpdateCommand().cmd)
 	r.cmd.AddCommand(newSelfUpdateCommand().cmd)
+	r.cmd.AddCommand(newTargetCommand().cmd)
 	r.cmd.AddCommand(newVersionCommand().cmd)
 
 	return r
@@ -92,7 +97,30 @@ func WithNamespace(fn NamespaceRunE) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
-		ns, err := docker.RestoreNamespace(ctx, namespaceFlag(cmd))
+		config, err := target.Load()
+		if err != nil {
+			return fmt.Errorf("loading targets: %w", err)
+		}
+
+		selected, err := config.Resolve(targetFlag(cmd), os.Getenv("OMA_TARGET"))
+		if err != nil {
+			return err
+		}
+
+		transport, err := selected.Transport()
+		if err != nil {
+			return err
+		}
+
+		client, closer, err := transport.Connect(ctx)
+		if err != nil {
+			return fmt.Errorf("connecting to target %q: %w", selected.Name, err)
+		}
+		if closer != nil {
+			defer closer.Close()
+		}
+
+		ns, err := docker.RestoreNamespace(ctx, namespaceFor(cmd, selected), docker.WithClient(client))
 		if err != nil {
 			return fmt.Errorf("restoring namespace: %w", err)
 		}
@@ -104,6 +132,21 @@ func WithNamespace(fn NamespaceRunE) func(*cobra.Command, []string) error {
 func namespaceFlag(cmd *cobra.Command) string {
 	namespace, _ := cmd.Root().PersistentFlags().GetString("namespace")
 	return namespace
+}
+
+func targetFlag(cmd *cobra.Command) string {
+	name, _ := cmd.Root().PersistentFlags().GetString("target")
+	return name
+}
+
+func namespaceFor(cmd *cobra.Command, selected target.Target) string {
+	if cmd.Root().PersistentFlags().Changed("namespace") {
+		return namespaceFlag(cmd)
+	}
+	if selected.Namespace != "" {
+		return selected.Namespace
+	}
+	return docker.DefaultNamespace
 }
 
 type exitCoder interface {

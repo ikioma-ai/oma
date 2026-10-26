@@ -38,6 +38,12 @@ func WithApplications(apps ...ApplicationSettings) NamespaceOption {
 	}
 }
 
+func WithClient(c *client.Client) NamespaceOption {
+	return func(ns *Namespace) {
+		ns.client = c
+	}
+}
+
 func NewNamespace(name string, opts ...NamespaceOption) (*Namespace, error) {
 	if name == "" {
 		name = DefaultNamespace
@@ -47,26 +53,26 @@ func NewNamespace(name string, opts ...NamespaceOption) (*Namespace, error) {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidNamespace, name)
 	}
 
-	c, err := client.New(client.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	ns := &Namespace{
-		name:   name,
-		client: c,
-	}
-	ns.proxy = NewProxy(ns)
+	ns := &Namespace{name: name}
 
 	for _, opt := range opts {
 		opt(ns)
 	}
 
+	if ns.client == nil {
+		c, err := client.New(client.FromEnv)
+		if err != nil {
+			return nil, err
+		}
+		ns.client = c
+	}
+	ns.proxy = NewProxy(ns)
+
 	return ns, nil
 }
 
-func RestoreNamespace(ctx context.Context, name string) (*Namespace, error) {
-	ns, err := NewNamespace(name)
+func RestoreNamespace(ctx context.Context, name string, opts ...NamespaceOption) (*Namespace, error) {
+	ns, err := NewNamespace(name, opts...)
 	if err != nil {
 		return nil, err
 	}
