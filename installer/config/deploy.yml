@@ -1,17 +1,14 @@
 service: oma-installer
-image: ikioma-ai/oma-installer
+image: ghcr.io/ikioma-ai/oma-installer
 
-# Replace these with the Oma installer hosts before deployment.
+# This file is a deployment template. Copy it to deploy.local.yml (ignored by
+# git) and set the live servers, installer hostname, and release image tag.
 servers:
   - oma-installer-101
   - oma-installer-102
 
 proxy:
-  # Replace this with the Oma installer hostname before deployment.
   host: get.oma.example
-
-registry:
-  server: localhost:5555
 
 ssh:
   user: app

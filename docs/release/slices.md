@@ -1,6 +1,6 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1 complete, V2 next
+Status: Phase 5 in progress; V1 complete, V2 implementation prepared (live deployment blocked on hostname and servers)
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
@@ -75,7 +75,7 @@ From a clean workstation, request `https://<installer-host>/up` and the install 
 
 ### Status
 
-PENDING
+PENDING — deployment prepared; final hostname, DNS, and servers are required.
 
 ## V3: Clean Local Installs
 

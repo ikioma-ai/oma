@@ -3,3 +3,4 @@
 coverage.out
 /integration/testapp/testapp
 /installer/oma-installer
+/installer/config/deploy.local.yml

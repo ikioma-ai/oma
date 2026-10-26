@@ -1,4 +1,4 @@
-.PHONY: build test integration lint lint-actions coverage dist test-release
+.PHONY: build test integration lint lint-actions coverage dist test-release installer-health
 
 PLATFORMS = linux darwin
 ARCHITECTURES = amd64 arm64
@@ -52,3 +52,10 @@ test-release:
 	-gh release delete $(TEST_RELEASE_TAG) --yes --cleanup-tag
 	git tag -f $(TEST_RELEASE_TAG)
 	git push origin $(TEST_RELEASE_TAG) --force
+
+installer-health:
+	@test -n "$(OMA_INSTALLER_URL)" || (echo "OMA_INSTALLER_URL is required" >&2; exit 1)
+	@curl -fsS "$(OMA_INSTALLER_URL)/up" >/dev/null
+	@curl -fsS "$(OMA_INSTALLER_URL)/apps.json" >/dev/null
+	@curl -fsS "$(OMA_INSTALLER_URL)/" | grep -q "REPO='ikioma-ai/oma'"
+	@echo "Installer health OK: $(OMA_INSTALLER_URL)"
