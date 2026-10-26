@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 complete (V1–V6)
+Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 complete (V1–V6); Phase 7 complete (V1–V2)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -675,6 +675,14 @@ Workstreams, in dependency order:
 3. **Object storage** — S3-compatible backups from the agent/runner with target-local credentials, retention, and restore.
 
 The existing controller-driven target model remains the default. Fleet scheduling, a network agent API, and non-S3 providers are out of scope.
+
+### Phase 7: Operational UI
+
+Status: complete; V1 backup destination UI and V2 automation visibility are delivered.
+
+Shape: [`docs/phase-7/shaping.md`](phase-7/shaping.md) · Slices: [`docs/phase-7/slices.md`](phase-7/slices.md)
+
+Phase 6 exposed agents and object storage through the CLI. This phase adds the TUI destination selector and target automation labels without changing controller, target, or object-storage semantics.
 
 ### Upstream maintenance policy
 

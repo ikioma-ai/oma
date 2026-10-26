@@ -382,3 +382,30 @@ func formFocusSubmit(form *Form) {
 func formClickSubmit(form *Form) {
 	*form = updateForm(*form, MouseEvent{IsClick: true, Target: "submit"})
 }
+
+func TestSelectField_CyclesOptions(t *testing.T) {
+	field := NewSelectField("Controller", "Target", "Object storage")
+	assert.Equal(t, "Controller", field.Value())
+
+	field.Update(keyPressMsg("right"))
+	assert.Equal(t, "Target", field.Value())
+
+	field.Update(keyPressMsg("right"))
+	assert.Equal(t, "Object storage", field.Value())
+
+	field.Update(keyPressMsg("right"))
+	assert.Equal(t, "Controller", field.Value())
+
+	field.Update(keyPressMsg("left"))
+	assert.Equal(t, "Object storage", field.Value())
+}
+
+func TestSelectField_SetIndex(t *testing.T) {
+	field := NewSelectField("Controller", "Target", "Object storage")
+	field.SetIndex(2)
+	assert.Equal(t, 2, field.Index())
+	assert.Equal(t, "Object storage", field.Value())
+
+	field.SetIndex(99)
+	assert.Equal(t, 2, field.Index())
+}

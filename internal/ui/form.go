@@ -163,6 +163,67 @@ func (f *CheckboxField) Blur()             {}
 func (f *CheckboxField) SetWidth(int)      {}
 func (f *CheckboxField) IsFocusable() bool { return true }
 
+// SelectField
+
+type SelectField struct {
+	options  []string
+	selected int
+}
+
+func NewSelectField(options ...string) *SelectField {
+	return &SelectField{options: options}
+}
+
+func (f *SelectField) Value() string {
+	if len(f.options) == 0 {
+		return ""
+	}
+	return f.options[f.selected]
+}
+
+func (f *SelectField) Index() int {
+	return f.selected
+}
+
+func (f *SelectField) SetIndex(index int) {
+	if index >= 0 && index < len(f.options) {
+		f.selected = index
+	}
+}
+
+func (f *SelectField) Update(msg tea.Msg) tea.Cmd {
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
+		switch msg.String() {
+		case "left", "h":
+			f.move(-1)
+		case "right", "l":
+			f.move(1)
+		}
+	}
+	return nil
+}
+
+func (f *SelectField) View() string {
+	if len(f.options) == 0 {
+		return ""
+	}
+	return "‹ " + f.options[f.selected] + " ›"
+}
+
+func (f *SelectField) Focus() tea.Cmd    { return nil }
+func (f *SelectField) Blur()             {}
+func (f *SelectField) SetWidth(int)      {}
+func (f *SelectField) IsFocusable() bool { return true }
+
+// Private
+
+func (f *SelectField) move(delta int) {
+	if len(f.options) == 0 {
+		return
+	}
+	f.selected = (f.selected + delta + len(f.options)) % len(f.options)
+}
+
 // StaticField
 
 type StaticField struct {
@@ -373,6 +434,10 @@ func (f Form) TextField(i int) *TextField {
 
 func (f Form) CheckboxField(i int) *CheckboxField {
 	return f.items[i].Field.(*CheckboxField)
+}
+
+func (f Form) SelectField(i int) *SelectField {
+	return f.items[i].Field.(*SelectField)
 }
 
 func (f Form) HasError() bool {

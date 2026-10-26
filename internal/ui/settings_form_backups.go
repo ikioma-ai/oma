@@ -15,6 +15,12 @@ const (
 	backupsDestinationField
 )
 
+const (
+	backupDestinationController = iota
+	backupDestinationTarget
+	backupDestinationObject
+)
+
 type SettingsFormBackups struct {
 	settingsFormBase
 }
@@ -24,7 +30,13 @@ func NewSettingsFormBackups(app *docker.Application, lastResult *docker.Operatio
 	pathField.SetValue(app.Settings.Backup.Path)
 
 	autoBackupField := NewCheckboxField("Automatically create backups", app.Settings.Backup.AutoBackup)
-	destinationField := NewCheckboxField("Store backups on the target", app.Settings.Backup.DestinationOrDefault() == docker.BackupDestinationTarget)
+	destinationField := NewSelectField("Controller", "Target", "Object storage")
+	switch app.Settings.Backup.DestinationOrDefault() {
+	case docker.BackupDestinationTarget:
+		destinationField.SetIndex(backupDestinationTarget)
+	case docker.BackupDestinationObject:
+		destinationField.SetIndex(backupDestinationObject)
+	}
 
 	m := SettingsFormBackups{
 		title: "Backups",
@@ -35,8 +47,11 @@ func NewSettingsFormBackups(app *docker.Application, lastResult *docker.Operatio
 		),
 		statusLine: func() string {
 			line := "Backups stored on the controller"
-			if destinationField.Checked() {
+			switch destinationField.Index() {
+			case backupDestinationTarget:
 				line = "Backups stored on the target; a target runner is required"
+			case backupDestinationObject:
+				line = "Backups stored in object storage; configure credentials on the target and use the target agent"
 			}
 			if status := formatOperationStatus("backup", lastResult); status != "" {
 				return status + " · " + line
@@ -47,8 +62,8 @@ func NewSettingsFormBackups(app *docker.Application, lastResult *docker.Operatio
 
 	m.form.SetActionButton("Run backup now", func() tea.Msg {
 		return settingsRunActionMsg{action: func() (string, error) {
-			if destinationField.Checked() {
-				return "", errors.New("target-side backups run on the target runner")
+			if destinationField.Index() != backupDestinationController {
+				return "", errors.New("target and object backups run on the target agent")
 			}
 			return "Backup complete", runBackup(app, pathField.Value())
 		}}
@@ -57,9 +72,13 @@ func NewSettingsFormBackups(app *docker.Application, lastResult *docker.Operatio
 		s := app.Settings
 		s.Backup.Path = f.TextField(backupsPathField).Value()
 		s.Backup.AutoBackup = f.CheckboxField(backupsAutoBackupField).Checked()
-		if f.CheckboxField(backupsDestinationField).Checked() {
+		switch f.SelectField(backupsDestinationField).Index() {
+		case backupDestinationTarget:
 			s.Backup.Destination = docker.BackupDestinationTarget
-		} else {
+		case backupDestinationObject:
+			s.Backup.Destination = docker.BackupDestinationObject
+			s.Backup.Path = ""
+		default:
 			s.Backup.Destination = docker.BackupDestinationController
 		}
 		return func() tea.Msg { return SettingsSectionSubmitMsg{Settings: s} }

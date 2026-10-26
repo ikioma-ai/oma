@@ -32,6 +32,21 @@ func TestTargetSwitcherListsTargets(t *testing.T) {
 	assert.Contains(t, view, "Cancel")
 }
 
+func TestTargetSwitcherShowsAutomationOwner(t *testing.T) {
+	config := &target.Config{
+		Default: "local",
+		Targets: map[string]target.Target{
+			"local":   {Name: "local", Local: true},
+			"vps":     {Name: "vps", SSH: "deploy@example.com", AutomationOwner: target.AutomationOwnerController},
+			"managed": {Name: "managed", SSH: "deploy@example.com", AutomationOwner: target.AutomationOwnerAgent, AgentVersion: "v0.9.0"},
+		},
+	}
+
+	view := NewTargetSwitcher(config, "local", nil).View()
+	assert.Contains(t, view, "vps · controller")
+	assert.Contains(t, view, "managed · agent v0.9.0")
+}
+
 func TestTargetSwitcherSelectsTarget(t *testing.T) {
 	config := &target.Config{
 		Default: "local",

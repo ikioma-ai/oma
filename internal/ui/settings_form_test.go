@@ -519,7 +519,7 @@ func TestSettingsFormBackups_SubmitTargetDestination(t *testing.T) {
 	backupsTypeText(&form, "/my/backups")
 	backupsPressTab(&form) // auto-backup
 	backupsPressTab(&form) // destination
-	backupsPressSpace(&form)
+	updateSettingsForm(&form, keyPressMsg("right"))
 	assert.Contains(t, form.StatusLine(), "target runner is required")
 
 	backupsPressTab(&form) // Done
@@ -529,6 +529,29 @@ func TestSettingsFormBackups_SubmitTargetDestination(t *testing.T) {
 	submitMsg, ok := cmd().(SettingsSectionSubmitMsg)
 	require.True(t, ok)
 	assert.Equal(t, docker.BackupDestinationTarget, submitMsg.Settings.Backup.Destination)
+}
+
+func TestSettingsFormBackups_SubmitObjectDestination(t *testing.T) {
+	app := &docker.Application{
+		Settings: docker.ApplicationSettings{Name: "chat", Backup: docker.BackupSettings{Path: "/old"}},
+	}
+	form := NewSettingsFormBackups(app, nil)
+
+	backupsTypeText(&form, "/my/backups")
+	backupsPressTab(&form) // auto-backup
+	backupsPressTab(&form) // destination
+	updateSettingsForm(&form, keyPressMsg("right"))
+	updateSettingsForm(&form, keyPressMsg("right"))
+	assert.Contains(t, form.StatusLine(), "object storage")
+
+	backupsPressTab(&form) // Done
+	result, cmd := form.Update(keyPressMsg("enter"))
+	form = result.(SettingsFormBackups)
+	require.NotNil(t, cmd)
+	submitMsg, ok := cmd().(SettingsSectionSubmitMsg)
+	require.True(t, ok)
+	assert.Equal(t, docker.BackupDestinationObject, submitMsg.Settings.Backup.Destination)
+	assert.Empty(t, submitMsg.Settings.Backup.Path)
 }
 
 // Helpers

@@ -31,3 +31,22 @@ func TestSettingsFormBackupsShowsTargetRunnerRequirement(t *testing.T) {
 
 	assert.Contains(t, form.StatusLine(), "target runner is required")
 }
+
+func TestSettingsFormBackupsShowsObjectStorageRequirement(t *testing.T) {
+	app := &docker.Application{Settings: docker.ApplicationSettings{
+		Name:   "remote",
+		Backup: docker.BackupSettings{Destination: docker.BackupDestinationObject},
+	}}
+	form := NewSettingsFormBackups(app, nil)
+
+	assert.Contains(t, form.StatusLine(), "object storage")
+}
+
+func TestSettingsFormBackupsObjectDestinationSkipsPath(t *testing.T) {
+	app := &docker.Application{Settings: docker.ApplicationSettings{
+		Name:   "remote",
+		Backup: docker.BackupSettings{Destination: docker.BackupDestinationObject},
+	}}
+	form := NewSettingsFormBackups(app, nil)
+	assert.Equal(t, backupDestinationObject, form.form.SelectField(backupsDestinationField).Index())
+}

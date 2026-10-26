@@ -40,6 +40,7 @@ func NewTargetSwitcher(config *target.Config, current string, err error) TargetS
 		if config != nil && entry.Name == config.Default && entry.Name != current {
 			label += " (default)"
 		}
+		label += automationLabel(entry)
 		items = append(items, MenuItem{Label: label, Key: i})
 	}
 	items = append(items, MenuItem{Label: "Cancel", Key: -1})
@@ -109,4 +110,20 @@ func (m TargetSwitcher) View() string {
 		Render(lipgloss.JoinVertical(lipgloss.Center, parts...))
 
 	return box
+}
+
+// Helpers
+
+func automationLabel(entry target.Target) string {
+	if entry.Local {
+		return ""
+	}
+	if entry.AutomationOwnerOrDefault() != target.AutomationOwnerAgent {
+		return " · controller"
+	}
+	label := " · agent"
+	if entry.AgentVersion != "" {
+		label += " " + entry.AgentVersion
+	}
+	return label
 }
