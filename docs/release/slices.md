@@ -1,6 +1,6 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1–V2 complete; V3 macOS pending; V4 remote-VM pass, public VPS pending
+Status: Phase 5 in progress; V1–V2, V5–V6 complete; V3 macOS and V4 public VPS pending
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
@@ -13,7 +13,7 @@ Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../spec
 
 | V4: Clean VPS Target | V5: Home/LAN + Controller | V6: Docs and Rollback |
 |---|---|---|
-| ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
+| ⏳ PENDING | ✅ COMPLETE | ✅ COMPLETE |
 | • Target setup<br>• Deploy app<br>• Verify HTTPS and backup | • Home/LAN target<br>• Custom TLS<br>• Docker-free controller | • README install command<br>• Rollback runbook<br>• No-migration statement |
 | *Demo: clean VPS hosts an app* | *Demo: LAN app and controller-only list* | *Demo: a reader installs from the docs* |
 
@@ -165,7 +165,7 @@ Install on a Docker-free controller, prepare a home/LAN target, deploy with a cu
 
 ### Status
 
-PENDING
+COMPLETE — validated on a fresh Ubuntu 24.04 VM with no Docker: controller-only install, local-Docker error, remote target list, home/LAN target setup, CA-signed custom-TLS HTTPS, and invalid-certificate failure before proxy mutation.
 
 ## V6: Documentation and Rollback
 
@@ -194,4 +194,4 @@ Follow the README from a clean machine; then redeploy the previous installer tag
 
 ### Status
 
-PENDING
+COMPLETE

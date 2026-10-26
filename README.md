@@ -12,7 +12,26 @@ Oma comes with a small built-in application catalog, but you can use it to insta
 
 ## Installing
 
-Oma is currently built from source. You will need Go 1.27 or later and Docker.
+Install Oma with the hosted installer:
+
+```sh
+curl -fsSL https://get.oma.ikioma.ai | sh
+```
+
+The installer verifies the release checksum, installs Oma, installs the background service, and starts the first-run flow.
+On Linux it can install Docker when needed; macOS requires Docker Desktop.
+
+For a controller that only manages remote targets, skip the local Docker requirement:
+
+```sh
+curl -fsSL https://get.oma.ikioma.ai | OMA_LOCAL_DOCKER=false sh
+```
+
+Then add a target with `oma target add` and `oma target setup`, and run `oma --target <name> list`.
+
+### Building from source
+
+You can also build Oma from source. You will need Go 1.27 or later and Docker.
 
 ```sh
 make build
@@ -24,7 +43,7 @@ oma
 The `oma background install` command registers the background service that handles automatic updates and backups.
 Run `oma` to install an application, or `oma --help` to see the available commands.
 
-A hosted installer is not available yet. The installer plan and remaining deployment decisions are tracked in [`docs/oma-fork-plan.md`](docs/oma-fork-plan.md).
+Release and rollback details are in [`docs/release/checklist.md`](docs/release/checklist.md). Oma starts clean; migration from ONCE is not supported.
 
 Note that if you need to use `sudo` when running Docker commands (for example, if your user is not in the `docker` group) then you'll also need to use `sudo` whenever you run `oma`.
 
