@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 (release) next
+Status: Phase 4 complete; Phase 5 shaped and sliced (implementation next)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -649,12 +649,18 @@ Exit criteria:
 
 ### Phase 5: Release
 
-1. Publish Oma release artifacts.
-2. Deploy the Oma installer service.
+Status: shaped and sliced; implementation next.
+
+Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md)
+
+Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The installer hostname remains an explicit deployment input; `get.oma.example` is only a placeholder.
+
+1. Publish Oma binaries, checksums, and the installer image.
+2. Deploy the installer service at the final HTTPS hostname.
 3. Test a clean install on Linux and macOS.
 4. Test a clean VPS target.
-5. Test a home/LAN target.
-6. Document migration from ONCE if the product ever needs it. Oma starts clean, so no migration is planned for now.
+5. Test a home/LAN target and a Docker-free controller.
+6. Document install, rollback, release checks, and the no-migration boundary.
 
 ### Upstream maintenance policy
 
@@ -721,7 +727,7 @@ Exit criteria:
 4. Remote catalog trust: deferred. V1 is embedded plus a local user directory; any future remote URL or signed manifest work starts with a separate threat model.
 5. Windows support: WSL2 only, or a native build and installer.
 6. Proxy image: continue using `basecamp/kamal-proxy` or publish a pinned Oma image.
-7. Branding: final install host. `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder. The GitHub organization is `ikioma-ai`, and the modification notice uses "the Oma authors".
+7. Branding: final install host. `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder. The GitHub organization is `ikioma-ai`, and the modification notice uses "the Oma authors". Phase 5 makes this an explicit deployment input; it must be resolved before V2.
 
 ---
 
