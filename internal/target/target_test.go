@@ -35,6 +35,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		SSH:          "deploy@example.com",
 		DockerSocket: "/run/docker.sock",
 		Namespace:    "apps",
+		AgentVersion: "v1.0.0",
 	}))
 	require.NoError(t, config.SetDefault("vps"))
 	require.NoError(t, config.Save())
@@ -48,6 +49,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	assert.Equal(t, "deploy@example.com", entry.SSH)
 	assert.Equal(t, "/run/docker.sock", entry.DockerSocket)
 	assert.Equal(t, "apps", entry.Namespace)
+	assert.Equal(t, "v1.0.0", entry.AgentVersion)
 	assert.False(t, entry.Local)
 }
 

@@ -165,3 +165,16 @@ func TestConfirmTargetSetup(t *testing.T) {
 	assert.True(t, ok)
 	assert.Contains(t, out.String(), "Prepare this target")
 }
+
+func TestAgentArch(t *testing.T) {
+	arch, err := agentArch("x86_64")
+	require.NoError(t, err)
+	assert.Equal(t, "amd64", arch)
+
+	arch, err = agentArch("aarch64")
+	require.NoError(t, err)
+	assert.Equal(t, "arm64", arch)
+
+	_, err = agentArch("riscv64")
+	require.Error(t, err)
+}

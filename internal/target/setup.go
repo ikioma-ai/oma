@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os/exec"
 	pathpkg "path"
@@ -31,6 +32,33 @@ func (c SSHCommand) Run(ctx context.Context, script string) (string, string, err
 		"sh -s",
 	)
 	cmd.Stdin = strings.NewReader(script)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return stdout.String(), stderr.String(), fmt.Errorf("SSH command failed: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+
+	return stdout.String(), stderr.String(), nil
+}
+
+func (c SSHCommand) RunInput(ctx context.Context, command string, input io.Reader) (string, string, error) {
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return "", "", fmt.Errorf("%w: %w", ErrSSHNotFound, err)
+	}
+
+	cmd := exec.CommandContext(ctx, sshPath,
+		"-o", "BatchMode=yes",
+		"-o", "ConnectTimeout=10",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
+		c.Destination,
+		command,
+	)
+	cmd.Stdin = input
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

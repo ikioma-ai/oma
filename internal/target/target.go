@@ -35,6 +35,7 @@ type Target struct {
 	SSH          string
 	DockerSocket string
 	Namespace    string
+	AgentVersion string
 	Local        bool
 }
 
@@ -54,6 +55,7 @@ type fileTarget struct {
 	SSH          string `yaml:"ssh,omitempty"`
 	DockerSocket string `yaml:"dockerSocket,omitempty"`
 	Namespace    string `yaml:"namespace,omitempty"`
+	AgentVersion string `yaml:"agentVersion,omitempty"`
 }
 
 func ConfigPath() (string, error) {
@@ -108,6 +110,7 @@ func LoadFrom(path string) (*Config, error) {
 			SSH:          strings.TrimSpace(entry.SSH),
 			DockerSocket: entry.DockerSocket,
 			Namespace:    entry.Namespace,
+			AgentVersion: entry.AgentVersion,
 		}
 		if name == LocalName {
 			if target.SSH != "" {
@@ -172,6 +175,7 @@ func (c *Config) SaveTo(path string) error {
 			SSH:          target.SSH,
 			DockerSocket: target.DockerSocket,
 			Namespace:    target.Namespace,
+			AgentVersion: target.AgentVersion,
 		}
 	}
 

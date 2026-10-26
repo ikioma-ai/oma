@@ -22,6 +22,7 @@ const (
 	githubReleasesURL          = brand.GitHubReleasesURL
 	checksumAssetName          = "checksums.txt"
 	checksumSignatureAssetName = "checksums.txt.sig"
+	maxReleaseAssetSize        = 128 << 20
 	httpTimeout                = 30 * time.Second
 	updateTempFile             = "." + brand.Name + "-update-tmp"
 )
@@ -142,6 +143,10 @@ func assetURL(rel *release, name string) string {
 }
 
 func (u *Updater) fetchAssetBytes(url string) ([]byte, error) {
+	return u.fetchAssetBytesLimit(url, 1<<20)
+}
+
+func (u *Updater) fetchAssetBytesLimit(url string, limit int64) ([]byte, error) {
 	resp, err := u.getAsset(url)
 	if err != nil {
 		return nil, err
@@ -152,11 +157,59 @@ func (u *Updater) fetchAssetBytes(url string) ([]byte, error) {
 		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, limit))
 	if err != nil {
 		return nil, err
 	}
 	return data, nil
+}
+
+func (u *Updater) DownloadTargetBinary(goos, goarch string) ([]byte, string, error) {
+	rel, err := u.fetchRelease()
+	if err != nil {
+		return nil, "", err
+	}
+
+	assetName := fmt.Sprintf("%s-%s-%s", brand.Name, goos, goarch)
+	binaryURL := assetURL(rel, assetName)
+	if binaryURL == "" {
+		return nil, "", fmt.Errorf("no release asset found for %s", assetName)
+	}
+	checksumURL := assetURL(rel, checksumAssetName)
+	if checksumURL == "" {
+		return nil, "", fmt.Errorf("release does not publish %s", checksumAssetName)
+	}
+	signatureURL := assetURL(rel, checksumSignatureAssetName)
+	if signatureURL == "" {
+		return nil, "", fmt.Errorf("release does not publish %s", checksumSignatureAssetName)
+	}
+
+	checksumData, err := u.fetchAssetBytes(checksumURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching checksums: %w", err)
+	}
+	signature, err := u.fetchAssetBytes(signatureURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching checksum signature: %w", err)
+	}
+	if err := u.verifyChecksumSignature(checksumData, signature); err != nil {
+		return nil, "", err
+	}
+	expected, err := checksumForAsset(checksumData, assetName)
+	if err != nil {
+		return nil, "", err
+	}
+
+	binary, err := u.fetchAssetBytesLimit(binaryURL, maxReleaseAssetSize)
+	if err != nil {
+		return nil, "", fmt.Errorf("downloading %s: %w", assetName, err)
+	}
+	digest := sha256.Sum256(binary)
+	if hex.EncodeToString(digest[:]) != expected {
+		return nil, "", fmt.Errorf("checksum mismatch for %s", assetName)
+	}
+
+	return binary, rel.TagName, nil
 }
 
 func (u *Updater) verifyChecksumSignature(data, signature []byte) error {
