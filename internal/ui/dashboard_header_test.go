@@ -66,3 +66,15 @@ func newTestHeader() DashboardHeader {
 	s := system.NewScraper(system.ScraperSettings{BufferSize: 10})
 	return NewDashboardHeader(s)
 }
+
+func TestDashboardHeader_Unavailable(t *testing.T) {
+	s := system.NewScraper(system.ScraperSettings{BufferSize: 10, Unavailable: true})
+	s.Scrape(context.Background())
+	h := NewDashboardHeader(s)
+
+	view := h.View(120)
+	assert.Contains(t, view, "Unavailable")
+	assert.Contains(t, view, "CPU")
+	assert.Contains(t, view, "Memory")
+	assert.Contains(t, view, "Disk")
+}

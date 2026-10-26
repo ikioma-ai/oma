@@ -105,6 +105,13 @@ func (a *Application) Volume(ctx context.Context) (*ApplicationVolume, error) {
 	return CreateVolume(ctx, a.namespace, a.Settings.Name, ApplicationLegacyVolumeSettings{})
 }
 
+func (a *Application) TargetName() string {
+	if a == nil || a.namespace == nil {
+		return LocalTargetName
+	}
+	return a.namespace.TargetName()
+}
+
 func (a *Application) URL() string {
 	if a.Settings.Host == "" {
 		return ""
@@ -256,7 +263,7 @@ func (a *Application) VerifyHTTPOrRemove(ctx context.Context) error {
 	}
 
 	if err := a.verifyHTTP(ctx); err != nil {
-		if cleanupErr := a.Remove(context.Background(), true); cleanupErr != nil {
+		if cleanupErr := a.Remove(context.Background(), false); cleanupErr != nil {
 			slog.Error("Failed to clean up after verification failure", "app", a.Settings.Name, "error", cleanupErr)
 		}
 		return err

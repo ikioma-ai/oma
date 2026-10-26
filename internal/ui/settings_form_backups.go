@@ -23,10 +23,15 @@ func NewSettingsFormBackups(app *docker.Application, lastResult *docker.Operatio
 
 	autoBackupField := NewCheckboxField("Automatically create backups", app.Settings.Backup.AutoBackup)
 
+	pathLabel := "Backup location"
+	if app.TargetName() != docker.LocalTargetName {
+		pathLabel = "Backup location (on this controller)"
+	}
+
 	m := SettingsFormBackups{
 		title: "Backups",
 		form: NewForm("Done",
-			FormItem{Label: "Backup location", Field: pathField},
+			FormItem{Label: pathLabel, Field: pathField},
 			FormItem{Label: "Backups", Field: autoBackupField},
 		),
 		statusLine: func() string {

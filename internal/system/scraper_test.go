@@ -120,3 +120,17 @@ func (s *Scraper) pushSample(sample Sample) {
 		s.count++
 	}
 }
+
+func TestUnavailableScraper(t *testing.T) {
+	s := NewScraper(ScraperSettings{BufferSize: 10, Unavailable: true})
+	assert.False(t, s.Available())
+	assert.Equal(t, 0, s.NumCPUs())
+
+	s.Scrape(context.Background())
+
+	samples := s.Fetch(1)
+	require.Len(t, samples, 1)
+	assert.True(t, samples[0].Unavailable)
+	assert.Zero(t, samples[0].CPUPercent)
+	assert.Zero(t, samples[0].MemTotal)
+}

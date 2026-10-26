@@ -350,3 +350,13 @@ func serverPort(t *testing.T, server *httptest.Server) int {
 	require.NoError(t, err)
 	return port
 }
+
+func TestUnavailableScraper(t *testing.T) {
+	s := NewMetricsScraper(ScraperSettings{Unavailable: true})
+	assert.False(t, s.Available())
+
+	s.Scrape(context.Background())
+
+	assert.ErrorIs(t, s.LastError(), ErrUnavailable)
+	assert.Empty(t, s.Fetch("app", 10))
+}

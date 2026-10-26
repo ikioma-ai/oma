@@ -16,9 +16,10 @@ import (
 )
 
 type catalogApplyCommand struct {
-	cmd    *cobra.Command
-	dryRun bool
-	yes    bool
+	cmd      *cobra.Command
+	dryRun   bool
+	yes      bool
+	noVerify bool
 }
 
 func newCatalogApplyCommand() *catalogApplyCommand {
@@ -31,6 +32,7 @@ func newCatalogApplyCommand() *catalogApplyCommand {
 	}
 	c.cmd.Flags().BoolVar(&c.dryRun, "dry-run", false, "show the diff without applying it")
 	c.cmd.Flags().BoolVar(&c.yes, "yes", false, "apply without confirmation")
+	c.cmd.Flags().BoolVar(&c.noVerify, "no-verify", false, "skip post-apply HTTP verification")
 	return c
 }
 
@@ -96,6 +98,11 @@ func (c *catalogApplyCommand) run(ctx context.Context, ns *docker.Namespace, cmd
 	return runWithProgress("Applying "+host, func(progress docker.DeployProgressCallback) error {
 		if err := app.ApplySettings(ctx, settings, pull, progress); err != nil {
 			return fmt.Errorf("%w: %w", docker.ErrDeployFailed, err)
+		}
+		if !c.noVerify {
+			if err := app.VerifyHTTPOrRemove(ctx); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

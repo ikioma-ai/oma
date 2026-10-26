@@ -11,8 +11,9 @@ import (
 )
 
 type deployCommand struct {
-	cmd   *cobra.Command
-	flags settingsFlags
+	cmd      *cobra.Command
+	flags    settingsFlags
+	noVerify bool
 }
 
 func newDeployCommand() *deployCommand {
@@ -25,6 +26,7 @@ func newDeployCommand() *deployCommand {
 	}
 
 	d.flags.register(d.cmd)
+	d.cmd.Flags().BoolVar(&d.noVerify, "no-verify", false, "skip post-deploy HTTP verification")
 
 	return d
 }
@@ -69,8 +71,10 @@ func (d *deployCommand) run(ctx context.Context, ns *docker.Namespace, cmd *cobr
 			return fmt.Errorf("%w: %w", docker.ErrDeployFailed, err)
 		}
 
-		if err := app.VerifyHTTPOrRemove(ctx); err != nil {
-			return err
+		if !d.noVerify {
+			if err := app.VerifyHTTPOrRemove(ctx); err != nil {
+				return err
+			}
 		}
 
 		return nil

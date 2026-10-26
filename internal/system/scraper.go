@@ -11,14 +11,15 @@ import (
 )
 
 type Sample struct {
-	CPUPercent float64
-	NumCPUs    int
-	MemTotal   uint64
-	MemUsed    uint64
-	DiskTotal  uint64
-	DiskFree   uint64
-	DiskUsed   uint64
-	DiskErr    error
+	CPUPercent  float64
+	NumCPUs     int
+	MemTotal    uint64
+	MemUsed     uint64
+	DiskTotal   uint64
+	DiskFree    uint64
+	DiskUsed    uint64
+	DiskErr     error
+	Unavailable bool
 }
 
 const defaultBufferSize = 200
@@ -27,6 +28,7 @@ type ScraperSettings struct {
 	BufferSize   int
 	DiskPath     string
 	DiskFallback string
+	Unavailable  bool
 }
 
 func (s ScraperSettings) withDefaults() ScraperSettings {
@@ -46,10 +48,19 @@ type Scraper struct {
 	head, count int
 	numCPUs     int
 	memTotal    uint64
+	unavailable bool
 }
 
 func NewScraper(settings ScraperSettings) *Scraper {
 	settings = settings.withDefaults()
+
+	if settings.Unavailable {
+		return &Scraper{
+			settings:    settings,
+			samples:     make([]Sample, settings.BufferSize),
+			unavailable: true,
+		}
+	}
 
 	numCPUs, err := cpu.Counts(true)
 	if err != nil {
@@ -62,6 +73,10 @@ func NewScraper(settings ScraperSettings) *Scraper {
 		samples:  make([]Sample, settings.BufferSize),
 		numCPUs:  numCPUs,
 	}
+}
+
+func (s *Scraper) Available() bool {
+	return !s.unavailable
 }
 
 func (s *Scraper) NumCPUs() int {
@@ -86,6 +101,11 @@ func (s *Scraper) Fetch(n int) []Sample {
 }
 
 func (s *Scraper) Scrape(ctx context.Context) {
+	if s.unavailable {
+		s.appendSample(Sample{Unavailable: true})
+		return
+	}
+
 	sample := Sample{
 		NumCPUs: s.numCPUs,
 	}
@@ -112,6 +132,12 @@ func (s *Scraper) Scrape(ctx context.Context) {
 		sample.DiskErr = err
 	}
 
+	s.appendSample(sample)
+}
+
+// Private
+
+func (s *Scraper) appendSample(sample Sample) {
 	s.mu.Lock()
 	s.samples[s.head] = sample
 	s.head = (s.head + 1) % len(s.samples)
@@ -120,8 +146,6 @@ func (s *Scraper) Scrape(ctx context.Context) {
 	}
 	s.mu.Unlock()
 }
-
-// Private
 
 func (s *Scraper) diskPath() string {
 	if s.settings.DiskPath != "" {

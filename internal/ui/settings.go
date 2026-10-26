@@ -326,7 +326,11 @@ func (m Settings) runDeploy() tea.Cmd {
 
 func (m Settings) runApply(pull bool) tea.Cmd {
 	return func() tea.Msg {
-		err := m.app.ApplySettings(context.Background(), m.app.Settings, pull, nil)
+		ctx := context.Background()
+		err := m.app.ApplySettings(ctx, m.app.Settings, pull, nil)
+		if err == nil && m.app.Settings.VerifyEnabled() {
+			err = m.app.VerifyHTTPOrRemove(ctx)
+		}
 		return settingsDeployFinishedMsg{err: err}
 	}
 }

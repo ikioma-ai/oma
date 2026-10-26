@@ -227,3 +227,8 @@ func TestRootRegistersCatalogApplyCommand(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "apply", cmd.Name())
 }
+
+func TestDeployAndApplyExposeNoVerify(t *testing.T) {
+	assert.NotNil(t, newDeployCommand().cmd.Flags().Lookup("no-verify"))
+	assert.NotNil(t, newCatalogApplyCommand().cmd.Flags().Lookup("no-verify"))
+}

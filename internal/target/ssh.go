@@ -108,8 +108,10 @@ func (c *sshConnection) Close() error {
 		case <-time.After(2 * time.Second):
 		}
 	}
-	if err := os.RemoveAll(c.dir); err != nil {
-		errs = append(errs, err)
+	if c.dir != "" {
+		if err := os.RemoveAll(c.dir); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	return errors.Join(errs...)

@@ -120,3 +120,14 @@ func TestDashboardTargetKeyBlockedDuringOperation(t *testing.T) {
 	_, cmd := updateDashboard(dashboard, keyPressMsg("t"))
 	assert.Nil(t, cmd)
 }
+
+func TestNewAppRemoteMarksTelemetryUnavailable(t *testing.T) {
+	ns, err := docker.NewNamespace("test", docker.WithTargetName("remote"))
+	require.NoError(t, err)
+
+	app := NewApp(ns, "")
+	defer app.shutdown()
+
+	assert.False(t, app.systemScraper.Available())
+	assert.False(t, app.scraper.Available())
+}

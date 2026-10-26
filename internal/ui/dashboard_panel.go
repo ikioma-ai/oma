@@ -76,7 +76,9 @@ func (p DashboardPanel) View(selected bool, toggling bool, showDetails bool, wid
 	const minCardWidth = 8
 	const cardCount = 4
 	const cardGaps = cardCount - 1
-	if detailed && innerWidth >= minCardWidth*cardCount+cardGaps {
+	if !p.scraper.Available() || p.scraper.LastError() != nil {
+		lines = append(lines, lipgloss.NewStyle().Foreground(Colors.Muted).Render("Request metrics unavailable"))
+	} else if detailed && innerWidth >= minCardWidth*cardCount+cardGaps {
 		cardViews := p.renderCards(innerWidth, cards)
 		lines = append(lines, cardViews)
 	}

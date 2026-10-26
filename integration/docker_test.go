@@ -815,6 +815,9 @@ func TestVerifyHTTPOrRemoveAllowsRedeployWithSameHost(t *testing.T) {
 	require.NoError(t, ns.Refresh(ctx))
 	assert.False(t, ns.HostInUse("reuse.invalid"))
 
+	_, err = docker.FindVolume(ctx, ns, "first")
+	assert.NoError(t, err, "volume should survive verification failure")
+
 	deployApp(t, ctx, ns, docker.ApplicationSettings{
 		Name:  "second",
 		Image: integrationAppImageRef,

@@ -99,3 +99,23 @@ func installFakeSSH(t *testing.T, script string) {
 	require.NoError(t, os.WriteFile(path, []byte(script), 0o755))
 	t.Setenv("PATH", dir)
 }
+
+func TestSSHMetricsArgs(t *testing.T) {
+	args := sshMetricsArgs("deploy@example.com", 19000, 1318)
+	assert.Contains(t, args, "-L")
+	assert.Contains(t, args, "127.0.0.1:19000:127.0.0.1:1318")
+	assert.Contains(t, args, "deploy@example.com")
+}
+
+func TestForwardMetricsReportsAuthenticationFailure(t *testing.T) {
+	installFakeSSH(t, `#!/bin/sh
+echo "Permission denied (publickey)." >&2
+exit 255
+`)
+
+	_, _, err := (SSHTransport{
+		Destination: "deploy@example.com",
+	}).ForwardMetrics(context.Background(), 1318)
+
+	require.ErrorIs(t, err, ErrSSHAuth)
+}

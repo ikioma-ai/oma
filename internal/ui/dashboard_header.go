@@ -24,11 +24,14 @@ type DashboardHeader struct {
 }
 
 func NewDashboardHeader(scraper *system.Scraper) DashboardHeader {
-	cpuTitle := fmt.Sprintf("CPU (%d cores)", scraper.NumCPUs())
-
+	cpuTitle := "CPU"
 	memTitle := "Memory"
-	if total := scraper.MemTotal(); total > 0 {
-		memTitle = fmt.Sprintf("Memory (%s)", UnitBytes.Format(float64(total)))
+
+	if scraper.Available() {
+		cpuTitle = fmt.Sprintf("CPU (%d cores)", scraper.NumCPUs())
+		if total := scraper.MemTotal(); total > 0 {
+			memTitle = fmt.Sprintf("Memory (%s)", UnitBytes.Format(float64(total)))
+		}
 	}
 
 	return DashboardHeader{
@@ -68,6 +71,10 @@ func (h DashboardHeader) View(width int) string {
 // Private
 
 func (h DashboardHeader) renderCPUChart(width int) string {
+	if samples := h.scraper.Fetch(1); len(samples) == 0 || samples[0].Unavailable {
+		return h.renderUnavailablePanel("CPU", width)
+	}
+
 	samples := h.scraper.Fetch(ChartHistoryLength)
 	data := make([]float64, len(samples))
 	for i, s := range samples {
@@ -82,6 +89,10 @@ func (h DashboardHeader) renderCPUChart(width int) string {
 }
 
 func (h DashboardHeader) renderMemChart(width int) string {
+	if samples := h.scraper.Fetch(1); len(samples) == 0 || samples[0].Unavailable {
+		return h.renderUnavailablePanel("Memory", width)
+	}
+
 	samples := h.scraper.Fetch(ChartHistoryLength)
 	data := make([]float64, len(samples))
 	for i, s := range samples {
@@ -108,13 +119,8 @@ func (h DashboardHeader) renderDiskGauge(width int) string {
 
 	contentRows := headerChartHeight
 
-	if len(samples) == 0 || samples[0].DiskErr != nil || samples[0].DiskTotal == 0 {
-		emptyLines := make([]string, contentRows)
-		for i := range emptyLines {
-			padding := strings.Repeat(" ", innerWidth)
-			emptyLines[i] = left + padding + right
-		}
-		return topLine + strings.Join(emptyLines, "\n") + "\n" + bottomLine
+	if len(samples) == 0 || samples[0].Unavailable || samples[0].DiskErr != nil || samples[0].DiskTotal == 0 {
+		return h.renderUnavailablePanel("Disk", width)
 	}
 
 	sample := samples[0]
@@ -145,6 +151,19 @@ func (h DashboardHeader) renderDiskGauge(width int) string {
 }
 
 // Helpers
+
+func (h DashboardHeader) renderUnavailablePanel(title string, width int) string {
+	innerWidth := width - 2
+	lines := make([]string, headerChartHeight)
+	for i := range lines {
+		content := ""
+		if i == headerChartHeight/2 {
+			content = "Unavailable"
+		}
+		lines[i] = boxSide() + lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(content) + boxSide()
+	}
+	return boxTop(title, innerWidth) + "\n" + strings.Join(lines, "\n") + "\n" + boxBottom(innerWidth)
+}
 
 func formatDiskSize(bytes uint64) string {
 	const (

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"sync"
 	"time"
@@ -79,6 +80,7 @@ type App struct {
 	eventChan       <-chan struct{}
 	watchCtx        context.Context
 	watchCancel     context.CancelFunc
+	telemetryCloser io.Closer
 	installImageRef string
 }
 
@@ -93,24 +95,61 @@ func NewApp(ns *docker.Namespace, installImageRef string) *App {
 		metricsPort = ns.Proxy().Settings.MetricsPort
 	}
 
+	remoteTarget := ns.TargetName() != docker.LocalTargetName
+	metricsURL := ""
+	metricsUnavailable := false
+	var telemetryCloser io.Closer
+
+	if remoteTarget {
+		config, err := target.Load()
+		if err != nil {
+			metricsUnavailable = true
+			slog.Warn("failed to load target for metrics", "error", err)
+		} else if selected, err := config.Resolve(ns.TargetName(), ""); err != nil {
+			metricsUnavailable = true
+			slog.Warn("failed to resolve target for metrics", "error", err)
+		} else if transport, err := selected.Transport(); err != nil {
+			metricsUnavailable = true
+			slog.Warn("failed to resolve target transport for metrics", "error", err)
+		} else if sshTransport, ok := transport.(target.SSHTransport); ok {
+			url, closer, err := sshTransport.ForwardMetrics(ctx, metricsPort)
+			if err != nil {
+				metricsUnavailable = true
+				slog.Warn("failed to forward target metrics", "error", err)
+			} else {
+				metricsURL = url
+				telemetryCloser = closer
+			}
+		} else {
+			metricsUnavailable = true
+		}
+	}
+
 	scraper := metrics.NewMetricsScraper(metrics.ScraperSettings{
-		Port:       metricsPort,
-		BufferSize: ChartSlidingWindow,
+		Port:        metricsPort,
+		BufferSize:  ChartSlidingWindow,
+		URL:         metricsURL,
+		Unavailable: metricsUnavailable,
 	})
 
 	dockerScraper := docker.NewScraper(ns, docker.ScraperSettings{
 		BufferSize: containerStatsBuffer,
 	})
 
-	diskPath, err := ns.DockerRootDir(ctx)
-	if err != nil {
-		slog.Warn("failed to get Docker root dir, using default", "err", err)
-		diskPath = "/var/lib/docker"
+	diskPath := ""
+	if !remoteTarget {
+		var err error
+		diskPath, err = ns.DockerRootDir(ctx)
+		if err != nil {
+			slog.Warn("failed to get Docker root dir, using default", "err", err)
+			diskPath = "/var/lib/docker"
+		}
 	}
 
 	systemScraper := system.NewScraper(system.ScraperSettings{
-		BufferSize: ChartHistoryLength,
-		DiskPath:   diskPath,
+		BufferSize:  ChartHistoryLength,
+		DiskPath:    diskPath,
+		Unavailable: remoteTarget,
 	})
 
 	userStats := userstats.NewReader(ns.Name())
@@ -133,6 +172,7 @@ func NewApp(ns *docker.Namespace, installImageRef string) *App {
 		eventChan:       eventChan,
 		watchCtx:        ctx,
 		watchCancel:     cancel,
+		telemetryCloser: telemetryCloser,
 		installImageRef: installImageRef,
 	}
 }
@@ -338,6 +378,9 @@ func (m *App) shutdown() {
 	}
 	if m.namespace != nil {
 		_ = m.namespace.Close()
+	}
+	if m.telemetryCloser != nil {
+		_ = m.telemetryCloser.Close()
 	}
 }
 

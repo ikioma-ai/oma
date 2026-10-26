@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,8 @@ const (
 	httpTimeout       = 5 * time.Second
 )
 
+var ErrUnavailable = errors.New("metrics unavailable")
+
 // Sample represents request counts for a single scrape interval
 type Sample struct {
 	Timestamp    time.Time
@@ -28,8 +31,10 @@ type Sample struct {
 
 // ScraperSettings configures the metrics scraper
 type ScraperSettings struct {
-	Port       int
-	BufferSize int
+	Port        int
+	BufferSize  int
+	URL         string
+	Unavailable bool
 }
 
 func (s ScraperSettings) withDefaults() ScraperSettings {
@@ -98,8 +103,23 @@ func (s *MetricsScraper) LastError() error {
 	return s.lastError
 }
 
+func (s *MetricsScraper) Available() bool {
+	return !s.settings.Unavailable
+}
+
 func (s *MetricsScraper) Scrape(ctx context.Context) {
-	url := fmt.Sprintf("http://127.0.0.1:%d/metrics", s.settings.Port)
+	if !s.settings.Unavailable {
+		s.scrape(ctx)
+		return
+	}
+	s.setError(ErrUnavailable)
+}
+
+func (s *MetricsScraper) scrape(ctx context.Context) {
+	url := s.settings.URL
+	if url == "" {
+		url = fmt.Sprintf("http://127.0.0.1:%d/metrics", s.settings.Port)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
