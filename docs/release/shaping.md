@@ -1,6 +1,6 @@
 # Release — Shaping
 
-Status: shape selected; V1 implemented, V2 deployment prepared
+Status: shape selected; V1 implemented, V2 hostname selected
 Phase: 5 — release
 Related: [`slices.md`](slices.md) · [`../../specs/release.md`](../../specs/release.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
@@ -220,7 +220,7 @@ flowchart TB
 
 ## Open Decision
 
-The final installer hostname is still an input, not a shape failure. The repository currently carries `get.oma.example` as a placeholder. The release cannot ship until the hostname is chosen, DNS points to the installer servers, and the Kamal config is updated. A subdomain of an existing controlled domain is the lowest-risk choice; a dedicated domain is a separate purchase and DNS decision.
+The final installer hostname is `get.oma.ikioma.ai`. DNS must point it at the installer servers before deployment. A subdomain of the existing controlled domain is the lowest-risk choice; no dedicated domain is needed.
 
 ## Notes for Implementation
 

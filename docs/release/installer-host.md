@@ -1,12 +1,12 @@
 # Installer Host Deployment
 
-Status: implementation prepared; live deployment requires the final hostname and servers.
+Status: hostname selected (`get.oma.ikioma.ai`); live deployment requires servers and DNS.
 
 ## Inputs
 
-- Final installer hostname, for example a subdomain you control.
+- Final installer hostname: `get.oma.ikioma.ai`.
 - One or more Linux servers with SSH access, Docker, and ports 80/443 reachable.
-- DNS control for the installer hostname.
+- DNS control for `ikioma.ai` to create the `get.oma` record.
 - The GHCR installer image tag from the release.
 - A public GHCR package or registry credentials available to the servers.
 
@@ -24,7 +24,7 @@ Edit `config/deploy.local.yml`:
 - Set `image` to the immutable release tag, for example:
   `ghcr.io/ikioma-ai/oma-installer:v1.0.0`.
 - Set `servers` to the real SSH destinations.
-- Set `proxy.host` to the final hostname.
+- Leave `proxy.host` set to `get.oma.ikioma.ai`.
 - Set `builder.arch` to match the servers.
 - Set `ssh.user` to the deployment user.
 
@@ -48,7 +48,7 @@ kamal -c config/deploy.local.yml deploy
 Use the hostname, not a local installer process:
 
 ```sh
-export OMA_INSTALLER_URL=https://<installer-host>
+export OMA_INSTALLER_URL=https://get.oma.ikioma.ai
 make installer-health
 ```
 
@@ -72,7 +72,7 @@ Verify `/up` and the install routes again. A binary release is forward-fixed wit
 
 ## First-release checklist
 
-- [ ] Final hostname chosen and DNS resolves.
+- [ ] `get.oma.ikioma.ai` resolves.
 - [ ] Ports 80/443 reachable.
 - [ ] GHCR installer package is public or server credentials are configured.
 - [ ] `config/deploy.local.yml` points at an immutable release tag.

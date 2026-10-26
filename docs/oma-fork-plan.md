@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 in progress (V1 complete; V2 deployment blocked on hostname/servers)
+Status: Phase 4 complete; Phase 5 in progress (V1 complete; V2 hostname chosen, deployment blocked on servers/DNS)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -38,7 +38,7 @@ Current baseline, recorded 2026-10-25:
 - `docs/oma-fork-plan.md` was committed as `af70667` before the rename.
 - After the Phase 1 rename: `go build ./...`, `go vet ./...`, `go test ./internal/...`, the installer module build/tests, `make build`, and `make dist` all pass.
 - `make dist` produces `oma-linux-amd64`, `oma-linux-arm64`, `oma-darwin-amd64`, `oma-darwin-arm64`, and `checksums.txt`.
-- `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder install host; it must be replaced before deploying the installer.
+- `installer/config/deploy.yml` now uses the selected install host `get.oma.ikioma.ai`; DNS and deployment servers remain pending.
 
 ---
 
@@ -521,7 +521,7 @@ Status: complete.
 1. [x] Rename the module path and all imports.
 2. [x] Rename the binary and command paths.
 3. [x] Replace repository, image namespaces, service labels, state directories, and user-visible product strings.
-   - Installer deployment hosts remain a configuration decision; `get.oma.example` is a placeholder, not a live domain.
+   - Installer host is `get.oma.ikioma.ai`; deployment servers and DNS remain pending.
 4. [x] Centralize new branding in `internal/brand`.
 5. [x] Update the license and add a modification notice while retaining the MIT notice.
 6. [x] Update GitHub workflows, Kamal config, installer image references, and release asset names.
@@ -649,11 +649,11 @@ Exit criteria:
 
 ### Phase 5: Release
 
-Status: in progress; V1 (release artifacts) complete; V2 deployment prepared, live deployment blocked on hostname/servers.
+Status: in progress; V1 (release artifacts) complete; V2 hostname `get.oma.ikioma.ai` selected, live deployment blocked on servers/DNS.
 
 Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md) · Spec: [`specs/release.md`](../specs/release.md)
 
-Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The installer hostname remains an explicit deployment input; `get.oma.example` is only a placeholder.
+Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The installer hostname is `get.oma.ikioma.ai`.
 
 1. Publish Oma binaries, checksums, and the installer image.
 2. Deploy the installer service at the final HTTPS hostname.
@@ -727,7 +727,7 @@ Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The instal
 4. Remote catalog trust: deferred. V1 is embedded plus a local user directory; any future remote URL or signed manifest work starts with a separate threat model.
 5. Windows support: WSL2 only, or a native build and installer.
 6. Proxy image: continue using `basecamp/kamal-proxy` or publish a pinned Oma image.
-7. Branding: final install host. `installer/config/deploy.yml` currently uses `get.oma.example` as a placeholder. The GitHub organization is `ikioma-ai`, and the modification notice uses "the Oma authors". Phase 5 makes this an explicit deployment input; it must be resolved before V2.
+7. Branding: final install host. `get.oma.ikioma.ai` was selected on 2026-10-26. The GitHub organization is `ikioma-ai`, and the modification notice uses "the Oma authors".
 
 ---
 
