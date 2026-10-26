@@ -1,6 +1,6 @@
 # Phase 6 — Remote Autonomy, Supply Chain, Storage
 
-Status: V1 release signing implemented; V2 next
+Status: V1–V2 implemented; V3 next
 Phase: 6
 Related: [`slices.md`](slices.md) · [`../release/shaping.md`](../release/shaping.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 

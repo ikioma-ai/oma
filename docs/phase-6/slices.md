@@ -1,6 +1,6 @@
 # Phase 6 — Slices
 
-Status: Phase 6 in progress; V1 release signing complete, V2 next
+Status: Phase 6 in progress; V1–V2 complete, V3 next
 Shape: [`shaping.md`](shaping.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 Workstreams are ordered **supply chain → agent → object storage**.
@@ -9,7 +9,7 @@ Workstreams are ordered **supply chain → agent → object storage**.
 
 | V1: Release Signing | V2: Agent Install | V3: Agent Automation |
 |---|---|---|
-| ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ✅ COMPLETE | ⏳ PENDING |
 | • RSA-SHA256 signature<br>• Installer/updater verify<br>• Key rotation metadata | • Signed binary upload<br>• Target service<br>• Agent role | • Agent-owned updates<br>• Agent-owned backups<br>• Status and logs |
 | *Demo: tampered checksum/signature is rejected* | *Demo: signed agent installed over SSH* | *Demo: controller offline; agent updates and backs up* |
 
@@ -76,7 +76,7 @@ Install the agent on a clean target, inspect its status over SSH, and reinstall 
 
 ### Status
 
-PENDING
+COMPLETE — `v0.6.0` installs the signed Linux agent over SSH, records `agentVersion`, starts the target service, and exposes status/logs. No new listener was opened. Reinstall is idempotent; the update path restores the prior binary if service startup fails.
 
 ## V3: Agent Automation
 
