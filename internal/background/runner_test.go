@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ikioma-ai/oma/internal/docker"
+	"github.com/ikioma-ai/oma/internal/target"
 )
 
 func TestRunnerShutdown(t *testing.T) {
@@ -81,4 +82,29 @@ func TestControllerRunnerReportsTargetBackup(t *testing.T) {
 	runner.checkBackup(context.Background(), app, &docker.State{})
 
 	assert.Contains(t, logs.String(), "target runner required")
+}
+
+func TestRunnerOwnsAutomationByAgent(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	path, err := target.ConfigPath()
+	require.NoError(t, err)
+	config, err := target.LoadFrom(path)
+	require.NoError(t, err)
+	require.NoError(t, config.Add(target.Target{
+		Name:            "vps",
+		SSH:             "root@example.com",
+		AutomationOwner: target.AutomationOwnerAgent,
+	}))
+	require.NoError(t, config.Save())
+
+	runner := &Runner{targetName: "vps"}
+	assert.True(t, runner.ownsAutomationByAgent())
+
+	local := &Runner{targetName: docker.LocalTargetName}
+	assert.False(t, local.ownsAutomationByAgent())
+
+	agent := &Runner{targetName: "vps", agent: true}
+	assert.True(t, agent.ownsAutomationByAgent())
 }

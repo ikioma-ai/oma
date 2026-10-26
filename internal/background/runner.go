@@ -84,7 +84,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	r.backupRole = role
 
 	slog.Info("Starting background runner", "namespace", r.namespace, "target", r.targetName,
-		"backup_role", r.backupRole, "check_interval", CheckInterval)
+		"backup_role", r.backupRole, "agent", r.agent, "check_interval", CheckInterval)
 
 	if r.userStats {
 		scraper := userstats.NewScraper(r.namespace)

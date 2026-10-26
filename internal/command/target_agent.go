@@ -113,7 +113,8 @@ rollback() {
     sudo -n systemctl restart oma-background >/dev/null 2>&1 || true
   fi
 }
-if ! sudo -n "$bin" background install --backup-role target; then
+sudo -n "$bin" background uninstall >/dev/null 2>&1 || true
+if ! sudo -n "$bin" background install --backup-role target --agent; then
   rollback
   exit 1
 fi
