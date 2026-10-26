@@ -1,7 +1,7 @@
 # Hardening — Slices
 
 Status: Phase 4 sliced; implementation pending
-Shape: [`shaping.md`](shaping.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/hardening.md`](../../specs/hardening.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
 

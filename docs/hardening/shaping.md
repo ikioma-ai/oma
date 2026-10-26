@@ -2,7 +2,7 @@
 
 Status: workstreams selected, breadboarded, ready to slice
 Phase: 4 — automation and hardening
-Related: [`slices.md`](slices.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Related: [`slices.md`](slices.md) · [`../../specs/hardening.md`](../../specs/hardening.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Frame
 

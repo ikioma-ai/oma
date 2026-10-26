@@ -629,7 +629,7 @@ Exit criteria:
 
 Status: shaped and sliced; implementation next.
 
-Shape: [`docs/hardening/shaping.md`](hardening/shaping.md) · Slices: [`docs/hardening/slices.md`](hardening/slices.md)
+Shape: [`docs/hardening/shaping.md`](hardening/shaping.md) · Slices: [`docs/hardening/slices.md`](hardening/slices.md) · Spec: [`specs/hardening.md`](../specs/hardening.md)
 
 Selected shape:
 
