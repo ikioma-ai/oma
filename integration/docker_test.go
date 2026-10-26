@@ -165,7 +165,7 @@ func TestRestoreAdoptsLegacyVolumeKeys(t *testing.T) {
 	require.NoError(t, err)
 	defer c.Close()
 
-	reader, err := c.ImagePull(ctx, settings.Image, client.ImagePullOptions{})
+	reader, err := c.ImagePull(ctx, settings.Image, client.ImagePullOptions{RegistryAuth: registryAuth(settings.Image)})
 	require.NoError(t, err)
 	io.Copy(io.Discard, reader)
 	reader.Close()
@@ -1462,7 +1462,13 @@ func baseImage(t *testing.T, ctx context.Context) v1.Image {
 
 	ref, err := name.ParseReference(integrationAppImageRef)
 	require.NoError(t, err)
-	img, err := remote.Image(ref, remote.WithContext(ctx))
+
+	options := []remote.Option{remote.WithContext(ctx)}
+	if authenticator, err := authn.DefaultKeychain.Resolve(ref.Context()); err == nil && authenticator != authn.Anonymous {
+		options = append(options, remote.WithAuth(authenticator))
+	}
+
+	img, err := remote.Image(ref, options...)
 	require.NoError(t, err)
 	return img
 }
