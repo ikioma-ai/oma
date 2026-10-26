@@ -80,6 +80,19 @@ func TestBuildSettingsBackupDestination(t *testing.T) {
 	assert.ErrorIs(t, err, docker.ErrBackupDestinationInvalid)
 }
 
+func TestBuildSettingsCustomTLS(t *testing.T) {
+	f := &settingsFlags{
+		tlsMode:            docker.TLSModeCustom,
+		tlsCertificatePath: "/certs/app.pem",
+		tlsPrivateKeyPath:  "/certs/app.key",
+	}
+	settings, err := f.buildSettings(&cobra.Command{}, "image:latest", "app.local")
+	require.NoError(t, err)
+	assert.Equal(t, docker.TLSModeCustom, settings.TLSMode)
+	assert.Equal(t, "/certs/app.pem", settings.TLSCertificatePath)
+	assert.Equal(t, "/certs/app.key", settings.TLSPrivateKeyPath)
+}
+
 func TestBuildSettingsAutoBackupRequiresPath(t *testing.T) {
 	t.Run("auto-backup without path", func(t *testing.T) {
 		f := &settingsFlags{autoBackup: true}

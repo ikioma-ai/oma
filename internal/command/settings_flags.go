@@ -12,20 +12,23 @@ import (
 )
 
 type settingsFlags struct {
-	host              string
-	disableTLS        bool
-	env               []string
-	smtpServer        string
-	smtpPort          string
-	smtpUsername      string
-	smtpPassword      string
-	smtpFrom          string
-	cpus              int
-	memory            int
-	autoUpdate        bool
-	backupPath        string
-	autoBackup        bool
-	backupDestination string
+	host               string
+	disableTLS         bool
+	env                []string
+	smtpServer         string
+	smtpPort           string
+	smtpUsername       string
+	smtpPassword       string
+	smtpFrom           string
+	cpus               int
+	memory             int
+	autoUpdate         bool
+	tlsMode            string
+	tlsCertificatePath string
+	tlsPrivateKeyPath  string
+	backupPath         string
+	autoBackup         bool
+	backupDestination  string
 
 	registryUsername      string
 	registryPassword      string
@@ -35,6 +38,9 @@ type settingsFlags struct {
 func (f *settingsFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.host, "host", "", "hostname for the application")
 	cmd.Flags().BoolVar(&f.disableTLS, "disable-tls", false, "disable TLS for this application")
+	cmd.Flags().StringVar(&f.tlsMode, "tls-mode", "", "TLS mode: auto, off, or custom")
+	cmd.Flags().StringVar(&f.tlsCertificatePath, "tls-certificate-path", "", "path to a custom TLS certificate")
+	cmd.Flags().StringVar(&f.tlsPrivateKeyPath, "tls-private-key-path", "", "path to a custom TLS private key")
 	cmd.Flags().StringArrayVar(&f.env, "env", nil, "environment variable in KEY=VALUE format (can be repeated)")
 	cmd.Flags().StringVar(&f.smtpServer, "smtp-server", "", "SMTP server address")
 	cmd.Flags().StringVar(&f.smtpPort, "smtp-port", "", "SMTP server port")
@@ -64,10 +70,13 @@ func (f *settingsFlags) buildSettings(cmd *cobra.Command, image, host string) (d
 	}
 
 	s := docker.ApplicationSettings{
-		Image:      image,
-		Host:       host,
-		DisableTLS: f.disableTLS,
-		EnvVars:    envVars,
+		Image:              image,
+		Host:               host,
+		DisableTLS:         f.disableTLS,
+		TLSMode:            f.tlsMode,
+		TLSCertificatePath: f.tlsCertificatePath,
+		TLSPrivateKeyPath:  f.tlsPrivateKeyPath,
+		EnvVars:            envVars,
 		SMTP: docker.SMTPSettings{
 			Server:   f.smtpServer,
 			Port:     f.smtpPort,
@@ -120,6 +129,15 @@ func (f *settingsFlags) applyChanges(cmd *cobra.Command, existing docker.Applica
 	}
 	if cmd.Flags().Changed("disable-tls") {
 		s.DisableTLS = f.disableTLS
+	}
+	if cmd.Flags().Changed("tls-mode") {
+		s.TLSMode = f.tlsMode
+	}
+	if cmd.Flags().Changed("tls-certificate-path") {
+		s.TLSCertificatePath = f.tlsCertificatePath
+	}
+	if cmd.Flags().Changed("tls-private-key-path") {
+		s.TLSPrivateKeyPath = f.tlsPrivateKeyPath
 	}
 	if cmd.Flags().Changed("env") {
 		envVars, err := f.parseEnvVars()

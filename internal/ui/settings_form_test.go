@@ -47,10 +47,19 @@ func TestSettingsFormApplication_TabNavigation(t *testing.T) {
 	assert.Equal(t, 2, form.form.Focused(), "tls")
 
 	applicationPressTab(&form)
-	assert.Equal(t, 3, form.form.Focused(), "done button")
+	assert.Equal(t, 3, form.form.Focused(), "custom tls")
 
 	applicationPressTab(&form)
-	assert.Equal(t, 4, form.form.Focused(), "cancel button")
+	assert.Equal(t, 4, form.form.Focused(), "certificate")
+
+	applicationPressTab(&form)
+	assert.Equal(t, 5, form.form.Focused(), "private key")
+
+	applicationPressTab(&form)
+	assert.Equal(t, 6, form.form.Focused(), "done button")
+
+	applicationPressTab(&form)
+	assert.Equal(t, 7, form.form.Focused(), "cancel button")
 
 	applicationPressTab(&form)
 	assert.Equal(t, 0, form.form.Focused(), "wraps to image")
@@ -60,10 +69,10 @@ func TestSettingsFormApplication_ShiftTabNavigation(t *testing.T) {
 	form := NewSettingsFormApplication(docker.ApplicationSettings{Host: "app.example.com"})
 
 	applicationPressShiftTab(&form)
-	assert.Equal(t, 4, form.form.Focused(), "cancel button")
+	assert.Equal(t, 7, form.form.Focused(), "cancel button")
 
 	applicationPressShiftTab(&form)
-	assert.Equal(t, 3, form.form.Focused(), "done button")
+	assert.Equal(t, 6, form.form.Focused(), "done button")
 }
 
 func TestSettingsFormApplication_SpaceTogglesTLS(t *testing.T) {
@@ -111,7 +120,7 @@ func TestSettingsFormApplication_Submit(t *testing.T) {
 		Host:  "app.example.com",
 	})
 
-	for range 3 {
+	for range 6 {
 		applicationPressTab(&form)
 	}
 
@@ -128,10 +137,57 @@ func TestSettingsFormApplication_Submit(t *testing.T) {
 	assert.False(t, submitMsg.Settings.DisableTLS)
 }
 
+func TestSettingsFormApplication_CustomTLSInitialState(t *testing.T) {
+	form := NewSettingsFormApplication(docker.ApplicationSettings{
+		Host:               "app.local",
+		TLSMode:            docker.TLSModeCustom,
+		TLSCertificatePath: "/certs/app.pem",
+		TLSPrivateKeyPath:  "/certs/app.key",
+	})
+
+	assert.True(t, form.form.CheckboxField(appTLSField).Checked())
+	assert.True(t, form.form.CheckboxField(appTLSCustomField).Checked())
+	assert.Equal(t, "/certs/app.pem", form.form.TextField(appTLSCertificateField).Value())
+	assert.Equal(t, "/certs/app.key", form.form.TextField(appTLSPrivateKeyField).Value())
+}
+
+func TestSettingsFormApplication_OffTLSIsUnchecked(t *testing.T) {
+	form := NewSettingsFormApplication(docker.ApplicationSettings{Host: "app.example.com", TLSMode: docker.TLSModeOff})
+	assert.False(t, form.form.CheckboxField(appTLSField).Checked())
+}
+
+func TestSettingsFormApplication_SubmitCustomTLS(t *testing.T) {
+	form := NewSettingsFormApplication(docker.ApplicationSettings{
+		Name:  "myapp",
+		Image: "img:latest",
+		Host:  "app.local",
+	})
+
+	for range 3 {
+		applicationPressTab(&form)
+	}
+	applicationPressSpace(&form) // custom TLS
+	applicationPressTab(&form)
+	applicationTypeText(&form, "/certs/app.crt")
+	applicationPressTab(&form)
+	applicationTypeText(&form, "/certs/app.key")
+	applicationPressTab(&form)
+
+	result, cmd := form.Update(keyPressMsg("enter"))
+	form = result.(SettingsFormApplication)
+	require.NotNil(t, cmd)
+	submitMsg, ok := cmd().(SettingsSectionSubmitMsg)
+	require.True(t, ok)
+	assert.Equal(t, docker.TLSModeCustom, submitMsg.Settings.TLSMode)
+	assert.False(t, submitMsg.Settings.DisableTLS)
+	assert.Equal(t, "/certs/app.crt", submitMsg.Settings.TLSCertificatePath)
+	assert.Equal(t, "/certs/app.key", submitMsg.Settings.TLSPrivateKeyPath)
+}
+
 func TestSettingsFormApplication_Cancel(t *testing.T) {
 	form := NewSettingsFormApplication(docker.ApplicationSettings{Host: "app.example.com"})
 
-	for range 4 {
+	for range 7 {
 		applicationPressTab(&form)
 	}
 

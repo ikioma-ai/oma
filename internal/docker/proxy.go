@@ -61,6 +61,8 @@ type DeployOptions struct {
 	Target             string
 	Host               string
 	TLS                bool
+	TLSCertificatePath string
+	TLSPrivateKeyPath  string
 	HealthCheckPath    string
 	HealthCheckPort    int
 	HealthCheckTimeout string
@@ -242,6 +244,12 @@ func (p *Proxy) deployArgs(opts DeployOptions) []string {
 	if opts.TLS {
 		args = append(args, "--tls")
 	}
+	if opts.TLSCertificatePath != "" {
+		args = append(args, "--tls-certificate-path", opts.TLSCertificatePath)
+	}
+	if opts.TLSPrivateKeyPath != "" {
+		args = append(args, "--tls-private-key-path", opts.TLSPrivateKeyPath)
+	}
 
 	return args
 }
@@ -270,6 +278,40 @@ func (p *Proxy) LoadState(ctx context.Context) (*State, error) {
 	}
 
 	return &state, nil
+}
+
+func (p *Proxy) StoreTLSMaterial(ctx context.Context, appName string, certificate, privateKey []byte) (certificatePath, privateKeyPath string, err error) {
+	certificateName := "tls-" + appName + "-cert.pem"
+	privateKeyName := "tls-" + appName + "-key.pem"
+
+	archive, err := tlsArchive(certificateName, privateKeyName, certificate, privateKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	if _, err := p.namespace.client.CopyToContainer(ctx, p.containerName(), client.CopyToContainerOptions{
+		DestinationPath: stateFileDir,
+		Content:         archive,
+	}); err != nil {
+		return "", "", fmt.Errorf("copying TLS material to proxy: %w", err)
+	}
+
+	return stateFileDir + "/" + certificateName, stateFileDir + "/" + privateKeyName, nil
+}
+
+func tlsArchive(certificateName, privateKeyName string, certificate, privateKey []byte) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	if err := writeTarEntry(tw, certificateName, certificate); err != nil {
+		return nil, fmt.Errorf("writing TLS certificate archive: %w", err)
+	}
+	if err := writeTarEntry(tw, privateKeyName, privateKey); err != nil {
+		return nil, fmt.Errorf("writing TLS private key archive: %w", err)
+	}
+	if err := tw.Close(); err != nil {
+		return nil, fmt.Errorf("closing TLS archive: %w", err)
+	}
+	return &buf, nil
 }
 
 func (p *Proxy) SaveState(ctx context.Context, state *State) error {

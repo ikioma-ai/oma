@@ -31,6 +31,9 @@ var (
 	ErrAutoBackupWithoutPath        = errors.New("auto-backup requires a backup path")
 	ErrBackupDestinationInvalid     = errors.New("backup destination must be controller or target")
 	ErrBackupDestinationWithoutPath = errors.New("backup destination requires a backup path")
+	ErrTLSModeInvalid               = errors.New("TLS mode must be auto, off, or custom")
+	ErrTLSCertificateRequired       = errors.New("custom TLS requires a certificate path")
+	ErrTLSPrivateKeyRequired        = errors.New("custom TLS requires a private key path")
 	ErrSetupFailed                  = errors.New("setup failed")
 	ErrPullFailed                   = &describedError{
 		msg:         "pull failed",
@@ -393,6 +396,11 @@ func (a *Application) deployWithVolume(ctx context.Context, vol *ApplicationVolu
 		return err
 	}
 
+	tlsCertificatePath, tlsPrivateKeyPath, err := a.prepareTLS(ctx)
+	if err != nil {
+		return err
+	}
+
 	env := a.BuildEnv()
 
 	hostConfig := &container.HostConfig{
@@ -432,6 +440,8 @@ func (a *Application) deployWithVolume(ctx context.Context, vol *ApplicationVolu
 		Target:             target,
 		Host:               a.Settings.Host,
 		TLS:                a.Settings.TLSEnabled(),
+		TLSCertificatePath: tlsCertificatePath,
+		TLSPrivateKeyPath:  tlsPrivateKeyPath,
 		HealthCheckPath:    a.healthCheckPath(),
 		HealthCheckPort:    a.healthCheckPort(),
 		HealthCheckTimeout: a.healthCheckTimeout(),

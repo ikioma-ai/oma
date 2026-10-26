@@ -127,6 +127,27 @@ func TestApplyChanges(t *testing.T) {
 		assert.ErrorIs(t, err, docker.ErrAutoBackupWithoutPath)
 	})
 
+	t.Run("set custom TLS", func(t *testing.T) {
+		cmd, f := newCmd()
+		require.NoError(t, cmd.Flags().Set("tls-mode", docker.TLSModeCustom))
+		require.NoError(t, cmd.Flags().Set("tls-certificate-path", "/certs/app.pem"))
+		require.NoError(t, cmd.Flags().Set("tls-private-key-path", "/certs/app.key"))
+
+		result, err := f.applyChanges(cmd, existing, existing.Image)
+		require.NoError(t, err)
+		assert.Equal(t, docker.TLSModeCustom, result.TLSMode)
+		assert.Equal(t, "/certs/app.pem", result.TLSCertificatePath)
+		assert.Equal(t, "/certs/app.key", result.TLSPrivateKeyPath)
+	})
+
+	t.Run("custom TLS without paths", func(t *testing.T) {
+		cmd, f := newCmd()
+		require.NoError(t, cmd.Flags().Set("tls-mode", docker.TLSModeCustom))
+
+		_, err := f.applyChanges(cmd, existing, existing.Image)
+		assert.ErrorIs(t, err, docker.ErrTLSCertificateRequired)
+	})
+
 	t.Run("set backup destination", func(t *testing.T) {
 		cmd, f := newCmd()
 		require.NoError(t, cmd.Flags().Set("backup-destination", docker.BackupDestinationTarget))

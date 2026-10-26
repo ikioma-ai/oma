@@ -116,6 +116,12 @@ type StorageMount struct {
 	Backup  bool   `json:"backup,omitempty"`
 }
 
+const (
+	TLSModeAuto   = "auto"
+	TLSModeOff    = "off"
+	TLSModeCustom = "custom"
+)
+
 type ApplicationSettings struct {
 	Name               string             `json:"name"`
 	Image              string             `json:"image"`
@@ -128,6 +134,8 @@ type ApplicationSettings struct {
 	HealthCheckPort    int                `json:"healthCheckPort,omitempty"`
 	HealthCheckTimeout string             `json:"healthCheckTimeout,omitempty"`
 	TLSMode            string             `json:"tlsMode,omitempty"`
+	TLSCertificatePath string             `json:"tlsCertificatePath,omitempty"`
+	TLSPrivateKeyPath  string             `json:"tlsPrivateKeyPath,omitempty"`
 	Verify             *bool              `json:"verify,omitempty"`
 	Storage            []StorageMount     `json:"storage,omitempty"`
 	EnvVars            map[string]string  `json:"env"`
@@ -187,8 +195,18 @@ func (s ApplicationSettings) Validate() error {
 			return fmt.Errorf("health check timeout %q must be a positive duration", s.HealthCheckTimeout)
 		}
 	}
-	if s.TLSMode != "" && s.TLSMode != "auto" && s.TLSMode != "off" {
-		return fmt.Errorf("TLS mode %q must be \"auto\" or \"off\"", s.TLSMode)
+	switch s.TLSMode {
+	case "", TLSModeAuto, TLSModeOff, TLSModeCustom:
+	default:
+		return fmt.Errorf("%w: %q", ErrTLSModeInvalid, s.TLSMode)
+	}
+	if s.TLSMode == TLSModeCustom {
+		if s.TLSCertificatePath == "" {
+			return ErrTLSCertificateRequired
+		}
+		if s.TLSPrivateKeyPath == "" {
+			return ErrTLSPrivateKeyRequired
+		}
 	}
 	if err := validateStorageMounts(s.Storage); err != nil {
 		return err
@@ -197,10 +215,16 @@ func (s ApplicationSettings) Validate() error {
 }
 
 func (s ApplicationSettings) TLSEnabled() bool {
-	if s.TLSMode == "off" {
+	if s.TLSMode == TLSModeOff || s.DisableTLS {
 		return false
 	}
-	return s.Host != "" && !s.DisableTLS && !IsLocalhost(s.Host)
+	if s.Host == "" {
+		return false
+	}
+	if s.TLSMode == TLSModeCustom {
+		return true
+	}
+	return !IsLocalhost(s.Host)
 }
 
 func (s ApplicationSettings) VerifyEnabled() bool {
@@ -218,7 +242,7 @@ func (s ApplicationSettings) Equal(other ApplicationSettings) bool {
 		s.HealthCheckPort != other.HealthCheckPort || s.HealthCheckTimeout != other.HealthCheckTimeout {
 		return false
 	}
-	if s.TLSMode != other.TLSMode {
+	if s.TLSMode != other.TLSMode || s.TLSCertificatePath != other.TLSCertificatePath || s.TLSPrivateKeyPath != other.TLSPrivateKeyPath {
 		return false
 	}
 	if (s.Verify == nil) != (other.Verify == nil) {

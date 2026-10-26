@@ -1,9 +1,12 @@
 package docker
 
 import (
+	"archive/tar"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProxyContainerName(t *testing.T) {
@@ -40,6 +43,23 @@ func TestDeployArgs(t *testing.T) {
 		args := proxy.deployArgs(DeployOptions{AppName: "chat", Target: "localhost:3000", TLS: true})
 
 		assert.Contains(t, args, "--tls")
+	})
+
+	t.Run("with custom TLS certificates", func(t *testing.T) {
+		args := proxy.deployArgs(DeployOptions{
+			AppName:            "chat",
+			Target:             "localhost:3000",
+			Host:               "chat.local",
+			TLS:                true,
+			TLSCertificatePath: "/certs/chat.pem",
+			TLSPrivateKeyPath:  "/certs/chat.key",
+		})
+
+		assert.Contains(t, args, "--tls")
+		assert.Contains(t, args, "--tls-certificate-path")
+		assert.Contains(t, args, "/certs/chat.pem")
+		assert.Contains(t, args, "--tls-private-key-path")
+		assert.Contains(t, args, "/certs/chat.key")
 	})
 
 	t.Run("with health check settings", func(t *testing.T) {
@@ -81,4 +101,25 @@ func TestDeployArgs(t *testing.T) {
 			"--tls",
 		}, args)
 	})
+}
+
+func TestTLSArchive(t *testing.T) {
+	archive, err := tlsArchive("app.pem", "app.key", []byte("certificate"), []byte("private key"))
+	require.NoError(t, err)
+
+	reader := tar.NewReader(archive)
+	entries := map[string]string{}
+	for {
+		header, err := reader.Next()
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+		data, err := io.ReadAll(reader)
+		require.NoError(t, err)
+		entries[header.Name] = string(data)
+	}
+
+	assert.Equal(t, "certificate", entries["app.pem"])
+	assert.Equal(t, "private key", entries["app.key"])
 }
