@@ -651,7 +651,7 @@ Exit criteria:
 
 Status: shaped and sliced; implementation next.
 
-Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md)
+Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md) · Spec: [`specs/release.md`](../specs/release.md)
 
 Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The installer hostname remains an explicit deployment input; `get.oma.example` is only a placeholder.
 

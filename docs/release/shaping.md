@@ -2,7 +2,7 @@
 
 Status: shape selected, breadboarded, ready to slice
 Phase: 5 — release
-Related: [`slices.md`](slices.md) · [`../../specs/hardening.md`](../../specs/hardening.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
+Related: [`slices.md`](slices.md) · [`../../specs/release.md`](../../specs/release.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Frame
 
