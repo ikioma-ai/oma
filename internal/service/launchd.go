@@ -33,7 +33,7 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 		<string>--target</string>
 		<string>%s</string>
 		<string>--backup-role</string>
-		<string>%s</string>
+		<string>%s</string>%s
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>
@@ -57,11 +57,15 @@ func (l *Launchd) IsInstalled(name string) bool {
 	return err == nil
 }
 
-func (l *Launchd) Install(ctx context.Context, name, execPath, namespace, targetName, backupRole string) error {
+func (l *Launchd) Install(ctx context.Context, name, execPath, namespace, targetName, backupRole string, agent bool) error {
 	label := l.label(name)
 	path := l.plistPath(name)
 
-	plistContent := fmt.Sprintf(plistTemplate, label, execPath, namespace, targetName, backupRole)
+	agentArgs := ""
+	if agent {
+		agentArgs = "\n\t\t<string>--agent</string>"
+	}
+	plistContent := fmt.Sprintf(plistTemplate, label, execPath, namespace, targetName, backupRole, agentArgs)
 
 	if err := os.WriteFile(path, []byte(plistContent), 0o644); err != nil {
 		return fmt.Errorf("writing plist file: %w", err)

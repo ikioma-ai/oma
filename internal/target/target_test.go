@@ -31,11 +31,12 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, config.Add(Target{
-		Name:         "vps",
-		SSH:          "deploy@example.com",
-		DockerSocket: "/run/docker.sock",
-		Namespace:    "apps",
-		AgentVersion: "v1.0.0",
+		Name:            "vps",
+		SSH:             "deploy@example.com",
+		DockerSocket:    "/run/docker.sock",
+		Namespace:       "apps",
+		AgentVersion:    "v1.0.0",
+		AutomationOwner: AutomationOwnerAgent,
 	}))
 	require.NoError(t, config.SetDefault("vps"))
 	require.NoError(t, config.Save())
@@ -50,6 +51,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	assert.Equal(t, "/run/docker.sock", entry.DockerSocket)
 	assert.Equal(t, "apps", entry.Namespace)
 	assert.Equal(t, "v1.0.0", entry.AgentVersion)
+	assert.Equal(t, AutomationOwnerAgent, entry.AutomationOwner)
 	assert.False(t, entry.Local)
 }
 
@@ -148,6 +150,7 @@ func TestLoadRejectsInvalidConfig(t *testing.T) {
 		{name: "invalid target name", content: "targets:\n  Bad_Name:\n    ssh: root@example.com\n"},
 		{name: "local with ssh", content: "targets:\n  local:\n    ssh: root@example.com\n"},
 		{name: "invalid namespace", content: "targets:\n  vps:\n    ssh: root@example.com\n    namespace: Bad Namespace\n"},
+		{name: "invalid automation owner", content: "targets:\n  vps:\n    ssh: root@example.com\n    automationOwner: robot\n"},
 	}
 
 	for _, test := range tests {
@@ -206,4 +209,9 @@ func TestManualSetupCommands(t *testing.T) {
 func TestSetupRejectsLocal(t *testing.T) {
 	_, err := Setup(context.Background(), Target{Name: "local", Local: true}, func(string) {})
 	require.Error(t, err)
+}
+
+func TestAutomationOwnerDefault(t *testing.T) {
+	assert.Equal(t, AutomationOwnerController, (Target{}).AutomationOwnerOrDefault())
+	assert.Equal(t, AutomationOwnerAgent, (Target{AutomationOwner: AutomationOwnerAgent}).AutomationOwnerOrDefault())
 }

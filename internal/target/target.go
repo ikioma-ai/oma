@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	AutomationOwnerController = "controller"
+	AutomationOwnerAgent      = "agent"
+
 	LocalName           = "local"
 	DefaultNamespace    = "oma"
 	DefaultDockerSocket = "/var/run/docker.sock"
@@ -31,12 +34,13 @@ var (
 var targetNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 type Target struct {
-	Name         string
-	SSH          string
-	DockerSocket string
-	Namespace    string
-	AgentVersion string
-	Local        bool
+	Name            string
+	SSH             string
+	DockerSocket    string
+	Namespace       string
+	AgentVersion    string
+	AutomationOwner string
+	Local           bool
 }
 
 type Config struct {
@@ -52,10 +56,11 @@ type fileConfig struct {
 }
 
 type fileTarget struct {
-	SSH          string `yaml:"ssh,omitempty"`
-	DockerSocket string `yaml:"dockerSocket,omitempty"`
-	Namespace    string `yaml:"namespace,omitempty"`
-	AgentVersion string `yaml:"agentVersion,omitempty"`
+	SSH             string `yaml:"ssh,omitempty"`
+	DockerSocket    string `yaml:"dockerSocket,omitempty"`
+	Namespace       string `yaml:"namespace,omitempty"`
+	AgentVersion    string `yaml:"agentVersion,omitempty"`
+	AutomationOwner string `yaml:"automationOwner,omitempty"`
 }
 
 func ConfigPath() (string, error) {
@@ -106,11 +111,12 @@ func LoadFrom(path string) (*Config, error) {
 		}
 
 		target := Target{
-			Name:         name,
-			SSH:          strings.TrimSpace(entry.SSH),
-			DockerSocket: entry.DockerSocket,
-			Namespace:    entry.Namespace,
-			AgentVersion: entry.AgentVersion,
+			Name:            name,
+			SSH:             strings.TrimSpace(entry.SSH),
+			DockerSocket:    entry.DockerSocket,
+			Namespace:       entry.Namespace,
+			AgentVersion:    entry.AgentVersion,
+			AutomationOwner: entry.AutomationOwner,
 		}
 		if name == LocalName {
 			if target.SSH != "" {
@@ -139,6 +145,9 @@ func LoadFrom(path string) (*Config, error) {
 		}
 		if target.Namespace != "" && !targetNamePattern.MatchString(target.Namespace) {
 			return nil, fmt.Errorf("target %q has invalid namespace %q", name, target.Namespace)
+		}
+		if target.AutomationOwner != "" && target.AutomationOwner != AutomationOwnerController && target.AutomationOwner != AutomationOwnerAgent {
+			return nil, fmt.Errorf("target %q has invalid automation owner %q", name, target.AutomationOwner)
 		}
 
 		config.Targets[name] = target
@@ -172,10 +181,11 @@ func (c *Config) SaveTo(path string) error {
 			continue
 		}
 		file.Targets[name] = fileTarget{
-			SSH:          target.SSH,
-			DockerSocket: target.DockerSocket,
-			Namespace:    target.Namespace,
-			AgentVersion: target.AgentVersion,
+			SSH:             target.SSH,
+			DockerSocket:    target.DockerSocket,
+			Namespace:       target.Namespace,
+			AgentVersion:    target.AgentVersion,
+			AutomationOwner: target.AutomationOwner,
 		}
 	}
 
@@ -289,6 +299,13 @@ func (c *Config) SortedTargets() []Target {
 		return targets[i].Name < targets[j].Name
 	})
 	return targets
+}
+
+func (t Target) AutomationOwnerOrDefault() string {
+	if t.AutomationOwner == "" {
+		return AutomationOwnerController
+	}
+	return t.AutomationOwner
 }
 
 func (t Target) Transport() (Transport, error) {

@@ -17,6 +17,7 @@ import (
 type backgroundInstallCommand struct {
 	cmd        *cobra.Command
 	backupRole string
+	agent      bool
 }
 
 const backgroundServiceSuffix = "-background"
@@ -30,6 +31,7 @@ func newBackgroundInstallCommand() *backgroundInstallCommand {
 		RunE:  b.run,
 	}
 	b.cmd.Flags().StringVar(&b.backupRole, "backup-role", background.BackupRoleController, "backup role: controller or target")
+	b.cmd.Flags().BoolVar(&b.agent, "agent", false, "run target-local agent automation")
 	return b
 }
 
@@ -73,7 +75,7 @@ func (b *backgroundInstallCommand) run(cmd *cobra.Command, args []string) error 
 		return nil
 	}
 
-	if err := svc.Install(ctx, serviceName, execPath, namespace, selected.Name, role); err != nil {
+	if err := svc.Install(ctx, serviceName, execPath, namespace, selected.Name, role, b.agent); err != nil {
 		return fmt.Errorf("installing service: %w", err)
 	}
 

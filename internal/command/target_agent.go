@@ -26,6 +26,7 @@ func newTargetAgentCommand() *targetAgentCommand {
 		Short: "Manage the target-local Oma agent",
 	}
 	t.cmd.AddCommand(newTargetAgentInstallCommand().cmd)
+	t.cmd.AddCommand(newTargetAgentDisableCommand().cmd)
 	t.cmd.AddCommand(newTargetAgentStatusCommand().cmd)
 	return t
 }
@@ -128,12 +129,53 @@ sudo -n rm -f "$old"
 	}
 
 	selected.AgentVersion = releaseTag
+	selected.AutomationOwner = target.AutomationOwnerAgent
 	config.Targets[selected.Name] = selected
 	if err := config.Save(); err != nil {
 		return fmt.Errorf("recording agent version: %w", err)
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "Installed agent %s on %s\n", releaseTag, selected.Name)
+	return nil
+}
+
+type targetAgentDisableCommand struct {
+	cmd *cobra.Command
+}
+
+func newTargetAgentDisableCommand() *targetAgentDisableCommand {
+	t := &targetAgentDisableCommand{}
+	t.cmd = &cobra.Command{
+		Use:   "disable <name>",
+		Short: "Stop agent automation and return ownership to the controller",
+		Args:  cobra.ExactArgs(1),
+		RunE:  t.run,
+	}
+	return t
+}
+
+func (t *targetAgentDisableCommand) run(cmd *cobra.Command, args []string) error {
+	config, selected, err := resolveTargetConfig(args[0])
+	if err != nil {
+		return err
+	}
+	if selected.Local {
+		return fmt.Errorf("the local target cannot have an agent")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	ssh := target.SSHCommand{Destination: selected.SSH}
+	if _, stderr, err := ssh.Run(ctx, "sudo -n systemctl disable --now oma-background >/dev/null 2>&1 || true"); err != nil {
+		return targetCommandError("stopping agent service", stderr, err)
+	}
+
+	selected.AutomationOwner = target.AutomationOwnerController
+	config.Targets[selected.Name] = selected
+	if err := config.Save(); err != nil {
+		return fmt.Errorf("recording automation owner: %w", err)
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Agent automation disabled on %s; controller owns automation\n", selected.Name)
 	return nil
 }
 
@@ -172,6 +214,7 @@ func (t *targetAgentStatusCommand) run(cmd *cobra.Command, args []string) error 
 
 	fmt.Fprintf(cmd.OutOrStdout(), "Target: %s\n", selected.Name)
 	fmt.Fprintf(cmd.OutOrStdout(), "Agent version: %s\n", selected.AgentVersion)
+	fmt.Fprintf(cmd.OutOrStdout(), "Automation owner: %s\n", selected.AutomationOwnerOrDefault())
 	fmt.Fprint(cmd.OutOrStdout(), output)
 	return nil
 }

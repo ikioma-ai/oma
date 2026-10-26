@@ -14,6 +14,7 @@ import (
 type backgroundRunCommand struct {
 	cmd        *cobra.Command
 	backupRole string
+	agent      bool
 }
 
 func newBackgroundRunCommand() *backgroundRunCommand {
@@ -26,6 +27,7 @@ func newBackgroundRunCommand() *backgroundRunCommand {
 		RunE:   b.run,
 	}
 	b.cmd.Flags().StringVar(&b.backupRole, "backup-role", background.BackupRoleController, "backup role: controller or target")
+	b.cmd.Flags().BoolVar(&b.agent, "agent", false, "run target-local agent automation")
 	return b
 }
 
@@ -54,5 +56,6 @@ func (b *backgroundRunCommand) run(cmd *cobra.Command, args []string) error {
 	}
 
 	runner := background.NewRunnerForTargetWithRole(namespaceFor(cmd, selected), selected.Name, transport, role)
+	runner.SetAgent(b.agent)
 	return runner.Run(ctx)
 }

@@ -27,6 +27,8 @@ type Runner struct {
 	transport  target.Transport
 	userStats  bool
 	backupRole string
+	agent      bool
+	agentOwned bool
 }
 
 func NewRunner(namespace string) *Runner {
@@ -45,6 +47,11 @@ func NewRunnerForTargetWithRole(namespace, targetName string, transport target.T
 		userStats:  targetName == docker.LocalTargetName,
 		backupRole: backupRole,
 	}
+}
+
+func (r *Runner) SetAgent(agent bool) *Runner {
+	r.agent = agent
+	return r
 }
 
 func NormalizeBackupRole(role string) (string, error) {
@@ -134,7 +141,9 @@ func (r *Runner) check(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("loading state: %w", err)
 	}
 
-	if r.backupRole == BackupRoleController && r.checkSelfUpdate(ctx, ns, state) {
+	r.agentOwned = r.ownsAutomationByAgent()
+
+	if (r.agent || !r.agentOwned) && r.checkSelfUpdate(ctx, ns, state) {
 		return true, nil
 	}
 
@@ -143,13 +152,32 @@ func (r *Runner) check(ctx context.Context) (bool, error) {
 			continue
 		}
 
-		if r.backupRole == BackupRoleController {
+		if r.agent || !r.agentOwned {
 			r.checkUpdate(ctx, app, state)
 		}
 		r.checkBackup(ctx, app, state)
 	}
 
 	return false, nil
+}
+
+func (r *Runner) ownsAutomationByAgent() bool {
+	if r.agent {
+		return true
+	}
+	if r.targetName == docker.LocalTargetName {
+		return false
+	}
+
+	config, err := target.Load()
+	if err != nil {
+		return false
+	}
+	selected, err := config.Resolve(r.targetName, "")
+	if err != nil {
+		return false
+	}
+	return selected.AutomationOwnerOrDefault() == target.AutomationOwnerAgent
 }
 
 func (r *Runner) backupAppliesTo(destination string) bool {
@@ -216,7 +244,7 @@ func (r *Runner) checkBackup(ctx context.Context, app *docker.Application, state
 
 	destination := app.Settings.Backup.DestinationOrDefault()
 	if !r.backupAppliesTo(destination) {
-		if r.backupRole == BackupRoleController && destination == docker.BackupDestinationTarget {
+		if r.backupRole == BackupRoleController && destination == docker.BackupDestinationTarget && !r.agentOwned {
 			slog.Warn("Skipping target-side backup; target runner required", "app", app.Settings.Name, "target", r.targetName)
 		}
 		return
