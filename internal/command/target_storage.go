@@ -100,6 +100,9 @@ func (t *targetStorageConfigureCommand) run(cmd *cobra.Command, args []string) e
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	ssh := target.SSHCommand{Destination: selected.SSH}
+	if _, stderr, err := ssh.Run(ctx, "sudo -n mkdir -p /etc/oma"); err != nil {
+		return targetCommandError("creating object storage config directory", stderr, err)
+	}
 	if _, stderr, err := ssh.RunInput(ctx, "sudo -n tee /etc/oma/object-storage.json >/dev/null", bytes.NewReader(data)); err != nil {
 		return targetCommandError("writing object storage config", stderr, err)
 	}
