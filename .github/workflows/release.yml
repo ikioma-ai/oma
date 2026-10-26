@@ -49,7 +49,7 @@ jobs:
         OWNER: ${{ github.repository_owner }}
       run: |
         set -eu
-        image="ghcr.io/$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')/oma-installer"
+        image="ghcr.io/$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')/oma-installer-service"
         case "$TAG" in
           *-*) prerelease=true ;;
           *) prerelease=false ;;

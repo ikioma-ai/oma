@@ -1,5 +1,5 @@
 service: oma-installer
-image: ghcr.io/ikioma-ai/oma-installer
+image: ghcr.io/ikioma-ai/oma-installer-service
 
 # This file is a deployment template. Copy it to deploy.local.yml (ignored by
 # git) and set the live servers and release image tag.
