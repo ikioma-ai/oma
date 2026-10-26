@@ -1,6 +1,6 @@
 # Installer Host Deployment
 
-Status: deployed and verified at `https://get.oma.ikioma.ai` using `v0.6.0`.
+Status: deployed and verified at `https://get.oma.ikioma.ai` using `v0.7.1`.
 
 ## Inputs
 
@@ -22,7 +22,7 @@ cp config/deploy.yml config/deploy.local.yml
 Edit `config/deploy.local.yml`:
 
 - Set `image` to the immutable release tag, for example:
-  `ghcr.io/ikioma-ai/oma-installer-service:v0.6.0`.
+  `ghcr.io/ikioma-ai/oma-installer-service:v0.7.1`.
 - Set `servers` to the real SSH destinations.
 - Leave `proxy.host` set to `get.oma.ikioma.ai`.
 - Set `builder.arch` to match the servers.
@@ -47,11 +47,11 @@ kamal -c config/deploy.local.yml deploy
 
 - Server: `85.9.222.162`
 - Kamal application: `oma-installer`
-- Release image: `ghcr.io/ikioma-ai/oma-installer-service:v0.6.0`
+- Release image: `ghcr.io/ikioma-ai/oma-installer-service:v0.7.1`
 - HTTPS: Let's Encrypt through Kamal proxy
 - Health: `https://get.oma.ikioma.ai/up` returns `OK`
 - Routes: `/`, `/apps.json`, and `/apps/{id}` verified
-- Release: `v0.6.0` is the current stable GitHub release; `oma-*` assets and checksums are published
+- Release: `v0.7.1` is the current stable GitHub release; `oma-*` assets and checksums are published
 
 ## Verify
 

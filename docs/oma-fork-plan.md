@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 in progress (V1–V2 complete, V3 next)
+Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 in progress (V1–V3 complete, V4 next)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -664,7 +664,7 @@ Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The instal
 
 ### Phase 6: Remote autonomy, supply chain, storage
 
-Status: in progress; V1 release signing and V2 agent install complete, V3 next.
+Status: in progress; V1 release signing, V2 agent install, and V3 agent automation complete, V4 next.
 
 Shape: [`docs/phase-6/shaping.md`](phase-6/shaping.md) · Slices: [`docs/phase-6/slices.md`](phase-6/slices.md)
 

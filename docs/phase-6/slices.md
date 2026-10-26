@@ -1,6 +1,6 @@
 # Phase 6 — Slices
 
-Status: Phase 6 in progress; V1–V2 complete, V3 next
+Status: Phase 6 in progress; V1–V3 complete, V4 next
 Shape: [`shaping.md`](shaping.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 Workstreams are ordered **supply chain → agent → object storage**.
@@ -9,7 +9,7 @@ Workstreams are ordered **supply chain → agent → object storage**.
 
 | V1: Release Signing | V2: Agent Install | V3: Agent Automation |
 |---|---|---|
-| ✅ COMPLETE | ✅ COMPLETE | ⏳ PENDING |
+| ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE |
 | • RSA-SHA256 signature<br>• Installer/updater verify<br>• Key rotation metadata | • Signed binary upload<br>• Target service<br>• Agent role | • Agent-owned updates<br>• Agent-owned backups<br>• Status and logs |
 | *Demo: tampered checksum/signature is rejected* | *Demo: signed agent installed over SSH* | *Demo: controller offline; agent updates and backs up* |
 
@@ -105,7 +105,7 @@ Disconnect the controller, let the agent update an app and write a backup, then 
 
 ### Status
 
-PENDING
+COMPLETE — automation ownership is explicit (`controller` or `agent`); agent service runs with `--agent`, controller status shows owner, and disabling the agent returns ownership and stops the service. Controller/agent ownership lookup is unit-tested; the agent service is verified active with `agent=true` and no public listener.
 
 ## V4: Object Backups
 
