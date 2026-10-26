@@ -15,6 +15,7 @@ import (
 	"github.com/ikioma-ai/oma/internal/metrics"
 	"github.com/ikioma-ai/oma/internal/mouse"
 	"github.com/ikioma-ai/oma/internal/system"
+	"github.com/ikioma-ai/oma/internal/target"
 	"github.com/ikioma-ai/oma/internal/userstats"
 	"github.com/ikioma-ai/oma/internal/version"
 )
@@ -43,6 +44,12 @@ type (
 	}
 	NavigateToLogsMsg   struct{ App *docker.Application }
 	NavigateToRemoveMsg struct{ App *docker.Application }
+
+	NavigateToTargetSwitcherMsg struct{}
+	targetSwitchDoneMsg         struct {
+		namespace *docker.Namespace
+		err       error
+	}
 
 	QuitMsg struct{}
 )
@@ -202,6 +209,29 @@ func (m *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case NavigateToInstallMsg:
 		return m, m.navigateTo(NewInstall(m.namespace, ""))
 
+	case NavigateToTargetSwitcherMsg:
+		config, err := target.Load()
+		return m, m.navigateTo(NewTargetSwitcher(config, m.namespace.TargetName(), err))
+
+	case TargetSelectedMsg:
+		return m, m.switchTarget(msg.Name)
+
+	case TargetSwitcherCloseMsg:
+		return m, func() tea.Msg { return NavigateToDashboardMsg{AllowEmpty: true} }
+
+	case targetSwitchDoneMsg:
+		if msg.err != nil {
+			config, _ := target.Load()
+			return m, m.navigateTo(NewTargetSwitcher(config, m.namespace.TargetName(), msg.err))
+		}
+		m.shutdown()
+		newApp := NewApp(msg.namespace, m.installImageRef)
+		if m.lastSize.Width > 0 {
+			newApp.lastSize = m.lastSize
+			newApp.currentScreen, _ = newApp.currentScreen.Update(m.lastSize)
+		}
+		return newApp, newApp.Init()
+
 	case NavigateToAppMsg:
 		if err := m.namespace.Refresh(m.watchCtx); err != nil {
 			slog.Error("refreshing namespace", "err", err)
@@ -303,7 +333,64 @@ func (m *App) navigateTo(screen Component) tea.Cmd {
 }
 
 func (m *App) shutdown() {
-	m.watchCancel()
+	if m.watchCancel != nil {
+		m.watchCancel()
+	}
+	if m.namespace != nil {
+		_ = m.namespace.Close()
+	}
+}
+
+func (m *App) switchTarget(name string) tea.Cmd {
+	return func() tea.Msg {
+		config, err := target.Load()
+		if err != nil {
+			return targetSwitchDoneMsg{err: err}
+		}
+
+		selected, err := config.Resolve(name, "")
+		if err != nil {
+			return targetSwitchDoneMsg{err: err}
+		}
+
+		transport, err := selected.Transport()
+		if err != nil {
+			return targetSwitchDoneMsg{err: err}
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		client, closer, err := transport.Connect(ctx)
+		if err != nil {
+			return targetSwitchDoneMsg{err: err}
+		}
+
+		namespaceName := selected.Namespace
+		if namespaceName == "" {
+			namespaceName = docker.DefaultNamespace
+		}
+
+		options := []docker.NamespaceOption{
+			docker.WithClient(client),
+			docker.WithTargetName(selected.Name),
+		}
+		if closer != nil {
+			options = append(options, docker.WithCloser(closer))
+		}
+
+		ns, err := docker.RestoreNamespace(ctx, namespaceName, options...)
+		if err != nil {
+			if closer != nil {
+				_ = closer.Close()
+			} else {
+				_ = client.Close()
+			}
+			return targetSwitchDoneMsg{err: err}
+		}
+
+		return targetSwitchDoneMsg{namespace: ns}
+	}
 }
 
 func (m *App) runScrape() tea.Cmd {

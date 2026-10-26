@@ -27,6 +27,7 @@ var dashboardKeys = struct {
 	NewApp   key.Binding
 	Logs     key.Binding
 	Details  key.Binding
+	Target   key.Binding
 	Quit     key.Binding
 }{
 	Up:       WithHelp(NewKeyBinding("up", "k"), "↑/k", "up"),
@@ -36,6 +37,7 @@ var dashboardKeys = struct {
 	NewApp:   WithHelp(NewKeyBinding("n"), "n", "new app"),
 	Logs:     WithHelp(NewKeyBinding("g"), "g", "logs"),
 	Details:  WithHelp(NewKeyBinding("d"), "d", "toggle details"),
+	Target:   WithHelp(NewKeyBinding("t"), "t", "target"),
 	Quit:     WithHelp(NewKeyBinding("esc"), "esc", "quit"),
 }
 
@@ -145,6 +147,9 @@ func (m Dashboard) Update(msg tea.Msg) (Component, tea.Cmd) {
 		if key.Matches(msg, dashboardKeys.NewApp) {
 			return m, func() tea.Msg { return NavigateToInstallMsg{} }
 		}
+		if key.Matches(msg, dashboardKeys.Target) && !m.toggling {
+			return m, func() tea.Msg { return NavigateToTargetSwitcherMsg{} }
+		}
 		if key.Matches(msg, dashboardKeys.Settings) && len(m.apps) > 0 {
 			app := m.apps[m.selectedIndex]
 			m.overlay = NewSettingsMenu(app)
@@ -238,7 +243,11 @@ func (m Dashboard) Update(msg tea.Msg) (Component, tea.Cmd) {
 }
 
 func (m Dashboard) View() string {
-	titleLine := Styles.TitleRule(m.width, m.hostname)
+	crumbs := []string{m.namespace.TargetName()}
+	if m.namespace.TargetName() == "local" {
+		crumbs = append(crumbs, m.hostname)
+	}
+	titleLine := Styles.TitleRule(m.width, crumbs...)
 
 	helpView := m.help.View()
 	helpLine := Styles.CenteredLine(m.width, helpView)
@@ -284,7 +293,8 @@ func (m Dashboard) helpBindings() []key.Binding {
 	if len(m.apps) > 0 {
 		return []key.Binding{
 			dashboardKeys.Up, dashboardKeys.Down, dashboardKeys.Actions,
-			dashboardKeys.Settings, dashboardKeys.Logs, dashboardKeys.Details, dashboardKeys.NewApp, dashboardKeys.Quit,
+			dashboardKeys.Settings, dashboardKeys.Logs, dashboardKeys.Details, dashboardKeys.NewApp,
+			dashboardKeys.Target, dashboardKeys.Quit,
 		}
 	}
 	return []key.Binding{dashboardKeys.NewApp, dashboardKeys.Quit}

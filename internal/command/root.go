@@ -116,14 +116,23 @@ func WithNamespace(fn NamespaceRunE) func(*cobra.Command, []string) error {
 		if err != nil {
 			return fmt.Errorf("connecting to target %q: %w", selected.Name, err)
 		}
+
+		options := []docker.NamespaceOption{
+			docker.WithClient(client),
+			docker.WithTargetName(selected.Name),
+		}
 		if closer != nil {
-			defer closer.Close()
+			options = append(options, docker.WithCloser(closer))
 		}
 
-		ns, err := docker.RestoreNamespace(ctx, namespaceFor(cmd, selected), docker.WithClient(client))
+		ns, err := docker.RestoreNamespace(ctx, namespaceFor(cmd, selected), options...)
 		if err != nil {
+			if closer != nil {
+				_ = closer.Close()
+			}
 			return fmt.Errorf("restoring namespace: %w", err)
 		}
+		defer ns.Close()
 
 		return fn(ctx, ns, cmd, args)
 	}

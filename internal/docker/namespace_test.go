@@ -124,3 +124,27 @@ func TestNewNamespaceUsesInjectedClient(t *testing.T) {
 	require.NoError(t, err)
 	assert.Same(t, c, ns.client)
 }
+
+type countingCloser struct {
+	count int
+}
+
+func (c *countingCloser) Close() error {
+	c.count++
+	return nil
+}
+
+func TestNamespaceTargetNameAndClose(t *testing.T) {
+	closer := &countingCloser{}
+	ns, err := NewNamespace("test", WithTargetName("vps"), WithCloser(closer))
+	require.NoError(t, err)
+
+	assert.Equal(t, "vps", ns.TargetName())
+	require.NoError(t, ns.Close())
+	require.NoError(t, ns.Close())
+	assert.Equal(t, 1, closer.count)
+
+	var nilNamespace *Namespace
+	assert.Equal(t, LocalTargetName, nilNamespace.TargetName())
+	assert.NoError(t, nilNamespace.Close())
+}

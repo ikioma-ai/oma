@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containerd/errdefs"
@@ -17,15 +18,22 @@ import (
 	"github.com/ikioma-ai/oma/internal/brand"
 )
 
-const DefaultNamespace = brand.Name
+const (
+	DefaultNamespace = brand.Name
+	LocalTargetName  = "local"
+)
 
 var ErrInvalidNamespace = errors.New("invalid namespace: must contain only lowercase letters, digits, and hyphens, and must not start with a hyphen")
 
 type Namespace struct {
 	name         string
+	targetName   string
 	client       *client.Client
 	proxy        *Proxy
 	applications []*Application
+	closer       io.Closer
+	closeOnce    sync.Once
+	closeErr     error
 }
 
 type NamespaceOption func(*Namespace)
@@ -41,6 +49,18 @@ func WithApplications(apps ...ApplicationSettings) NamespaceOption {
 func WithClient(c *client.Client) NamespaceOption {
 	return func(ns *Namespace) {
 		ns.client = c
+	}
+}
+
+func WithCloser(c io.Closer) NamespaceOption {
+	return func(ns *Namespace) {
+		ns.closer = c
+	}
+}
+
+func WithTargetName(name string) NamespaceOption {
+	return func(ns *Namespace) {
+		ns.targetName = name
 	}
 }
 
@@ -86,6 +106,27 @@ func RestoreNamespace(ctx context.Context, name string, opts ...NamespaceOption)
 
 func (n *Namespace) Name() string {
 	return n.name
+}
+
+func (n *Namespace) TargetName() string {
+	if n == nil || n.targetName == "" {
+		return LocalTargetName
+	}
+	return n.targetName
+}
+
+func (n *Namespace) Close() error {
+	if n == nil {
+		return nil
+	}
+	n.closeOnce.Do(func() {
+		if n.closer != nil {
+			n.closeErr = n.closer.Close()
+		} else if n.client != nil {
+			n.closeErr = n.client.Close()
+		}
+	})
+	return n.closeErr
 }
 
 func (n *Namespace) addApplication(settings ApplicationSettings) *Application {
