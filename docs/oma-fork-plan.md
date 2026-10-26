@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 in progress (V1–V2 complete, V3 next)
+Status: Phase 4 complete; Phase 5 in progress (V1–V2 complete; V3 Linux complete, macOS pending)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -649,7 +649,7 @@ Exit criteria:
 
 ### Phase 5: Release
 
-Status: in progress; V1 (release artifacts) and V2 (installer host) complete; `v0.4.0` published, V3 next.
+Status: in progress; V1 (release artifacts) and V2 (installer host) complete; V3 clean Linux passed, clean macOS pending.
 
 Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md) · Spec: [`specs/release.md`](../specs/release.md)
 

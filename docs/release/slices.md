@@ -1,6 +1,6 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1–V2 complete, V3 next
+Status: Phase 5 in progress; V1–V2 complete, V3 Linux complete / macOS pending
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
@@ -105,7 +105,7 @@ Run the public install command on one clean Linux VM and one clean macOS machine
 
 ### Status
 
-PENDING
+PARTIAL — clean Linux passed on a fresh Ubuntu 24.04 VM with `v0.4.1`: binary, checksum, systemd service, and a deployed Campfire app. Clean macOS install remains pending because this environment has no passwordless sudo or clean macOS host; the `darwin-arm64` release asset and checksum were verified.
 
 ## V4: Clean VPS Target
 
