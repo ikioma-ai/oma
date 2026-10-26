@@ -42,6 +42,18 @@ jobs:
           grep -q "  ${asset}$" checksums.txt
         done
 
+    - name: Sign release artifacts
+      env:
+        RELEASE_SIGNING_KEY: ${{ secrets.OMA_RELEASE_SIGNING_KEY }}
+      run: |
+        set -eu
+        printf '%s' "$RELEASE_SIGNING_KEY" > "$RUNNER_TEMP/release-signing-key.pem"
+        openssl dgst -sha256 -sign "$RUNNER_TEMP/release-signing-key.pem" -out dist/checksums.txt.sig dist/checksums.txt
+        openssl pkey -in "$RUNNER_TEMP/release-signing-key.pem" -pubout -out "$RUNNER_TEMP/release-signing-key.pub.pem"
+        openssl dgst -sha256 -verify "$RUNNER_TEMP/release-signing-key.pub.pem" -signature dist/checksums.txt.sig dist/checksums.txt
+        printf '%s\n' 'oma-release-2026-10' > dist/checksums.txt.keyid
+        rm -f "$RUNNER_TEMP/release-signing-key.pem"
+
     - name: Set release metadata
       id: release
       env:
@@ -108,13 +120,15 @@ jobs:
         - \`oma-darwin-amd64\`
         - \`oma-darwin-arm64\`
 
-        Checksums are published in \`checksums.txt\`.
+        Checksums are published in \`checksums.txt\`, with signer key ID in \`checksums.txt.keyid\`.
 
         ### Installer image
 
         \`${IMAGE}:${TAG}\`
 
         Digest: \`${DIGEST}\`
+
+        Signature: \`checksums.txt.sig\` (key \`oma-release-2026-10\`)
 
         ### Validation
 

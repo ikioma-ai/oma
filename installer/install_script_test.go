@@ -86,6 +86,29 @@ func TestInstallScript_VerifiesChecksum(t *testing.T) {
 		assertNoInstalledFile(t, f)
 	})
 
+	t.Run("missing signature asset aborts", func(t *testing.T) {
+		f := newInstallFixture(t)
+		binary := []byte("#!/bin/sh\nexit 0\n")
+		f.writeAsset(t, binary, sha256Hex(binary))
+		f.writeReleaseAssets(t, true, false)
+
+		code, output := f.run(t)
+		require.NotEqual(t, 0, code, output)
+		assert.Contains(t, output, "Release does not publish checksums.txt.sig")
+		assertNoInstalledFile(t, f)
+	})
+
+	t.Run("invalid signature aborts", func(t *testing.T) {
+		f := newInstallFixture(t)
+		binary := []byte("#!/bin/sh\nexit 0\n")
+		f.writeAsset(t, binary, sha256Hex(binary))
+
+		code, output := f.run(t, "FAKE_OPENSSL_FAIL=1")
+		require.NotEqual(t, 0, code, output)
+		assert.Contains(t, output, "Release signature verification failed")
+		assertNoInstalledFile(t, f)
+	})
+
 	t.Run("missing checksum asset aborts", func(t *testing.T) {
 		f := newInstallFixture(t)
 		binary := []byte("#!/bin/sh\nexit 0\n")
@@ -133,6 +156,7 @@ type installFixture struct {
 	installDir    string
 	fixturesDir   string
 	checksumPath  string
+	signaturePath string
 	logPath       string
 	dockerLogPath string
 }
@@ -147,6 +171,7 @@ func newInstallFixture(t *testing.T) *installFixture {
 		installDir:    filepath.Join(dir, "install"),
 		fixturesDir:   filepath.Join(dir, "fixtures"),
 		checksumPath:  filepath.Join(dir, "fixtures", "checksums.txt"),
+		signaturePath: filepath.Join(dir, "fixtures", "checksums.txt.sig"),
 		logPath:       filepath.Join(dir, "background.log"),
 		dockerLogPath: filepath.Join(dir, "docker.log"),
 	}
@@ -154,6 +179,7 @@ func newInstallFixture(t *testing.T) *installFixture {
 	require.NoError(t, os.MkdirAll(f.installDir, 0o755))
 	require.NoError(t, os.MkdirAll(f.fixturesDir, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(f.fixturesDir, "binary"), []byte("#!/bin/sh\nexit 0\n"), 0o644))
+	require.NoError(t, os.WriteFile(f.signaturePath, []byte("test signature"), 0o644))
 
 	f.writeExecutable(t, "uname", `#!/bin/sh
 case "$1" in
@@ -165,6 +191,10 @@ esac
 	f.writeExecutable(t, "docker", `#!/bin/sh
  echo "$*" >> "$OMA_DOCKER_LOG"
  exit 0
+`)
+	f.writeExecutable(t, "openssl", `#!/bin/sh
+if [ -n "${FAKE_OPENSSL_FAIL:-}" ]; then exit 1; fi
+exit 0
 `)
 	f.writeExecutable(t, "sudo", "#!/bin/sh\nexec \"$@\"\n")
 	f.writeExecutable(t, "curl", `#!/bin/sh
@@ -182,6 +212,7 @@ case "$url" in
 */releases/latest) body="$FIXTURES/release.json" ;;
 */assets/binary) body="$FIXTURES/binary" ;;
 */assets/checksums) body="$FIXTURES/checksums.txt" ;;
+*/assets/checksums-signature) body="$FIXTURES/checksums.txt.sig" ;;
 *) exit 22 ;;
 esac
 if [ "$out" = "-" ] || [ -z "$out" ]; then
@@ -203,17 +234,27 @@ func (f *installFixture) writeAsset(t *testing.T, binary []byte, checksum string
 
 func (f *installFixture) writeRelease(t *testing.T, withChecksums bool) {
 	t.Helper()
+	f.writeReleaseAssets(t, withChecksums, withChecksums)
+}
+
+func (f *installFixture) writeReleaseAssets(t *testing.T, withChecksums, withSignature bool) {
+	t.Helper()
 	checksumAsset := ""
 	if withChecksums {
 		checksumAsset = `,
     {"url": "https://api.github.com/repos/ikioma-ai/oma/releases/assets/checksums", "name": "checksums.txt"}`
 	}
+	signatureAsset := ""
+	if withSignature {
+		signatureAsset = `,
+    {"url": "https://api.github.com/repos/ikioma-ai/oma/releases/assets/checksums-signature", "name": "checksums.txt.sig"}`
+	}
 	release := fmt.Sprintf(`{
   "tag_name": "v9.9.9",
   "assets": [
-    {"url": "https://api.github.com/repos/ikioma-ai/oma/releases/assets/binary", "name": "oma-linux-amd64"}%s
+    {"url": "https://api.github.com/repos/ikioma-ai/oma/releases/assets/binary", "name": "oma-linux-amd64"}%s%s
   ]
-}`, checksumAsset)
+}`, checksumAsset, signatureAsset)
 	require.NoError(t, os.WriteFile(filepath.Join(f.fixturesDir, "release.json"), []byte(release), 0o644))
 }
 

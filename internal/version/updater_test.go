@@ -1,9 +1,14 @@
 package version
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -157,10 +162,11 @@ func TestUpdateBinary_VerifiesChecksum(t *testing.T) {
 	binary := []byte("new binary content")
 	assetName := fmt.Sprintf("%s-%s-%s", brand.Name, runtime.GOOS, runtime.GOARCH)
 	checksums := fmt.Sprintf("%s  %s\n", sha256Hex(binary), assetName)
-	srv := releaseWithChecksums(t, "v2.0.0", binary, checksums)
+	srv, publicKey := releaseWithChecksums(t, "v2.0.0", binary, checksums)
 
 	u := newUpdater("v1.0.0", srv.URL, srv.Client())
 	u.execPath = execPath
+	u.signingPublicKey = publicKey
 	require.NoError(t, u.UpdateBinary())
 
 	got, err := os.ReadFile(execPath)
@@ -178,10 +184,11 @@ func TestUpdateBinary_RejectsChecksumMismatch(t *testing.T) {
 
 	assetName := fmt.Sprintf("%s-%s-%s", brand.Name, runtime.GOOS, runtime.GOARCH)
 	checksums := fmt.Sprintf("%s  %s\n", sha256Hex([]byte("different")), assetName)
-	srv := releaseWithChecksums(t, "v2.0.0", []byte("new binary content"), checksums)
+	srv, publicKey := releaseWithChecksums(t, "v2.0.0", []byte("new binary content"), checksums)
 
 	u := newUpdater("v1.0.0", srv.URL, srv.Client())
 	u.execPath = execPath
+	u.signingPublicKey = publicKey
 	err := u.UpdateBinary()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "checksum mismatch")
@@ -200,10 +207,11 @@ func TestUpdateBinary_RejectsMissingChecksum(t *testing.T) {
 	require.NoError(t, os.WriteFile(execPath, []byte("old"), 0o755))
 
 	checksums := fmt.Sprintf("%s  oma-something-else\n", sha256Hex([]byte("new binary content")))
-	srv := releaseWithChecksums(t, "v2.0.0", []byte("new binary content"), checksums)
+	srv, publicKey := releaseWithChecksums(t, "v2.0.0", []byte("new binary content"), checksums)
 
 	u := newUpdater("v1.0.0", srv.URL, srv.Client())
 	u.execPath = execPath
+	u.signingPublicKey = publicKey
 	err := u.UpdateBinary()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "checksum for")
@@ -230,6 +238,35 @@ func TestUpdateBinary_RejectsMissingChecksumAsset(t *testing.T) {
 	err := u.UpdateBinary()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "checksums.txt")
+}
+
+func TestUpdateBinary_RejectsMissingSignature(t *testing.T) {
+	dir := t.TempDir()
+	execPath := filepath.Join(dir, "oma")
+	require.NoError(t, os.WriteFile(execPath, []byte("old"), 0o755))
+
+	assetName := fmt.Sprintf("%s-%s-%s", brand.Name, runtime.GOOS, runtime.GOARCH)
+	assetSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/binary":
+			w.Write([]byte("new binary content"))
+		case "/checksums.txt":
+			w.Write([]byte(sha256Hex([]byte("new binary content")) + "  " + assetName + "\n"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(assetSrv.Close)
+
+	srv := releaseServer(t, "v2.0.0", []asset{
+		{Name: assetName, URL: assetSrv.URL + "/binary"},
+		{Name: checksumAssetName, URL: assetSrv.URL + "/checksums.txt"},
+	})
+	u := newUpdater("v1.0.0", srv.URL, srv.Client())
+	u.execPath = execPath
+	err := u.UpdateBinary()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), checksumSignatureAssetName)
 }
 
 func TestChecksumForAsset(t *testing.T) {
@@ -299,8 +336,17 @@ func sha256Hex(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func releaseWithChecksums(t *testing.T, tag string, binary []byte, checksums string) *httptest.Server {
+func releaseWithChecksums(t *testing.T, tag string, binary []byte, checksums string) (*httptest.Server, []byte) {
 	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	digest := sha256.Sum256([]byte(checksums))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, digest[:])
+	require.NoError(t, err)
+	publicKey, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	require.NoError(t, err)
+	publicKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKey})
 
 	assetSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -308,6 +354,8 @@ func releaseWithChecksums(t *testing.T, tag string, binary []byte, checksums str
 			w.Write(binary)
 		case "/checksums.txt":
 			w.Write([]byte(checksums))
+		case "/checksums.txt.sig":
+			w.Write(signature)
 		default:
 			http.NotFound(w, r)
 		}
@@ -318,7 +366,8 @@ func releaseWithChecksums(t *testing.T, tag string, binary []byte, checksums str
 	assets := []asset{
 		{Name: assetName, URL: assetSrv.URL + "/binary"},
 		{Name: checksumAssetName, URL: assetSrv.URL + "/checksums.txt"},
+		{Name: checksumSignatureAssetName, URL: assetSrv.URL + "/checksums.txt.sig"},
 	}
 
-	return releaseServer(t, tag, assets)
+	return releaseServer(t, tag, assets), publicKeyPEM
 }

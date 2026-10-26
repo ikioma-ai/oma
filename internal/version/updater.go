@@ -19,18 +19,20 @@ import (
 )
 
 const (
-	githubReleasesURL = brand.GitHubReleasesURL
-	checksumAssetName = "checksums.txt"
-	httpTimeout       = 30 * time.Second
-	updateTempFile    = "." + brand.Name + "-update-tmp"
+	githubReleasesURL          = brand.GitHubReleasesURL
+	checksumAssetName          = "checksums.txt"
+	checksumSignatureAssetName = "checksums.txt.sig"
+	httpTimeout                = 30 * time.Second
+	updateTempFile             = "." + brand.Name + "-update-tmp"
 )
 
 type Updater struct {
-	currentVersion string
-	apiURL         string
-	client         *http.Client
-	githubToken    string
-	execPath       string
+	currentVersion   string
+	apiURL           string
+	client           *http.Client
+	githubToken      string
+	execPath         string
+	signingPublicKey []byte
 }
 
 func NewUpdater() *Updater {
@@ -41,9 +43,10 @@ func NewUpdater() *Updater {
 
 func newUpdater(currentVersion, apiURL string, client *http.Client) *Updater {
 	return &Updater{
-		currentVersion: currentVersion,
-		apiURL:         apiURL,
-		client:         client,
+		currentVersion:   currentVersion,
+		apiURL:           apiURL,
+		client:           client,
+		signingPublicKey: []byte(releaseSigningPublicKey),
 	}
 }
 
@@ -68,8 +71,23 @@ func (u *Updater) UpdateBinary() error {
 	if checksumURL == "" {
 		return fmt.Errorf("release does not publish %s", checksumAssetName)
 	}
+	signatureURL := assetURL(rel, checksumSignatureAssetName)
+	if signatureURL == "" {
+		return fmt.Errorf("release does not publish %s", checksumSignatureAssetName)
+	}
 
-	expectedChecksum, err := u.fetchChecksum(checksumURL, assetName)
+	checksumData, err := u.fetchAssetBytes(checksumURL)
+	if err != nil {
+		return fmt.Errorf("fetching checksums: %w", err)
+	}
+	signature, err := u.fetchAssetBytes(signatureURL)
+	if err != nil {
+		return fmt.Errorf("fetching checksum signature: %w", err)
+	}
+	if err := u.verifyChecksumSignature(checksumData, signature); err != nil {
+		return err
+	}
+	expectedChecksum, err := checksumForAsset(checksumData, assetName)
 	if err != nil {
 		return err
 	}
@@ -123,23 +141,29 @@ func assetURL(rel *release, name string) string {
 	return ""
 }
 
-func (u *Updater) fetchChecksum(url, assetName string) (string, error) {
+func (u *Updater) fetchAssetBytes(url string) ([]byte, error) {
 	resp, err := u.getAsset(url)
 	if err != nil {
-		return "", fmt.Errorf("fetching checksums: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("fetching checksums: unexpected status %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return "", fmt.Errorf("reading checksums: %w", err)
+		return nil, err
 	}
+	return data, nil
+}
 
-	return checksumForAsset(data, assetName)
+func (u *Updater) verifyChecksumSignature(data, signature []byte) error {
+	if len(u.signingPublicKey) == 0 {
+		return fmt.Errorf("release signing public key is not configured")
+	}
+	return verifySignatureWithPublicKey(data, signature, u.signingPublicKey)
 }
 
 func checksumForAsset(data []byte, assetName string) (string, error) {
