@@ -35,6 +35,11 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 		<string>--backup-role</string>
 		<string>%s</string>
 	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key>
+		<string>/var/root</string>
+	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>

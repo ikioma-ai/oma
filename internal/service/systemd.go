@@ -18,6 +18,7 @@ After=network.target docker.service
 
 [Service]
 Type=simple
+Environment=HOME=/root
 ExecStart=%s background run --namespace %s --target %s --backup-role %s
 Restart=always
 RestartSec=5
