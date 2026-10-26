@@ -38,6 +38,9 @@ jobs:
     - name: Test
       run: make test
 
+    - name: Test installer
+      run: cd installer && go test ./...
+
     - name: Integration test
       run: make integration
 

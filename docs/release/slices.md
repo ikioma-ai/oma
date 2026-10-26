@@ -1,13 +1,13 @@
 # Release — Slices
 
-Status: Phase 5 shaped; implementation pending
+Status: Phase 5 in progress; V1 complete, V2 next
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
 
 | V1: Release Artifacts | V2: Installer Host | V3: Clean Local Installs |
 |---|---|---|
-| ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING |
 | • Tag-driven CI<br>• Four binaries + checksums<br>• Installer image in GHCR | • Final hostname<br>• DNS and TLS<br>• Kamal deploy + health | • Docker-free Linux<br>• macOS with Docker Desktop<br>• Verified install script |
 | *Demo: tagged release and pullable installer image* | *Demo: HTTPS `/up` and install script* | *Demo: install on two clean hosts* |
 
@@ -45,7 +45,7 @@ Push a test tag, confirm the GitHub release assets and checksums, pull the insta
 
 ### Status
 
-PENDING
+COMPLETE
 
 ## V2: Installer Host
 
