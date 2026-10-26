@@ -649,7 +649,7 @@ Exit criteria:
 
 ### Phase 5: Release
 
-Status: in progress; V1 (release artifacts) and V2 (installer host) complete, V3 next.
+Status: in progress; V1 (release artifacts) and V2 (installer host) complete; `v0.4.0` published, V3 next.
 
 Shape: [`docs/release/shaping.md`](release/shaping.md) · Slices: [`docs/release/slices.md`](release/slices.md) · Spec: [`specs/release.md`](../specs/release.md)
 
