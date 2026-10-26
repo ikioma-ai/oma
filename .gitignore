@@ -5,3 +5,5 @@ coverage.out
 /installer/oma-installer
 /installer/config/deploy.local.yml
 /installer/.kamal/secrets
+
+.agents/
