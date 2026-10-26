@@ -1,6 +1,7 @@
 package command
 
 import (
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,4 +52,11 @@ func TestWithApplicationError(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "starting application")
+}
+
+func TestExitCodeIgnoresOSExecErrors(t *testing.T) {
+	err := exec.Command("sh", "-c", "exit 7").Run()
+	require.Error(t, err)
+	_, ok := ExitCode(err)
+	assert.False(t, ok)
 }

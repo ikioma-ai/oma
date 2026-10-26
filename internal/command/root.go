@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
 
@@ -184,6 +185,9 @@ type exitCoder interface {
 }
 
 func ExitCode(err error) (int, bool) {
+	if _, ok := errors.AsType[*exec.ExitError](err); ok {
+		return 0, false
+	}
 	if e, ok := errors.AsType[exitCoder](err); ok {
 		return e.ExitCode(), true
 	}

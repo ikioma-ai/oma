@@ -95,7 +95,7 @@ func Setup(ctx context.Context, target Target, emit func(string)) (SetupReport, 
 	}
 
 	dockerReady := false
-	if _, _, err := ssh.Run(ctx, "docker info >/dev/null 2>&1"); err == nil {
+	if _, _, err := ssh.Run(ctx, "docker info >/dev/null"); err == nil {
 		dockerReady = true
 	}
 
@@ -112,7 +112,7 @@ func Setup(ctx context.Context, target Target, emit func(string)) (SetupReport, 
 			report.Installed = true
 		}
 
-		if _, stderr, err := ssh.Run(ctx, "docker info >/dev/null 2>&1"); err != nil {
+		if _, stderr, err := ssh.Run(ctx, "docker info >/dev/null"); err != nil {
 			if !strings.Contains(strings.ToLower(stderr), "permission denied") {
 				return report, setupError("checking Docker after installation", stderr, err)
 			}
