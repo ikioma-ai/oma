@@ -68,9 +68,9 @@ curl -fsS https://get.oma.ikioma.ai/apps/campfire | grep INSTALL_REF
 
 - [ ] Clean Linux host installs Oma, the background service, and an app.
 - [ ] Clean Docker-free controller installs with `OMA_LOCAL_DOCKER=false`.
-- [ ] Remote target setup, deploy, and HTTPS work.
+- [x] Remote target setup, deploy, and HTTPS work.
 - [ ] Home/LAN target works with a trusted custom certificate.
-- [ ] Backup and restore work against the target.
+- [x] Backup and restore work against the target.
 - [ ] macOS clean install is recorded or explicitly pending.
 
 ## Rollback

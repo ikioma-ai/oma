@@ -1,6 +1,6 @@
 # Release — Slices
 
-Status: Phase 5 in progress; V1–V2, V5–V6 complete; V3 macOS and V4 public VPS pending
+Status: Phase 5 in progress; V1–V2, V4–V6 complete; V3 macOS pending
 Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../specs/release.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 ## Slice Grid
@@ -13,7 +13,7 @@ Shape: [`shaping.md`](shaping.md) · Spec: [`../../specs/release.md`](../../spec
 
 | V4: Clean VPS Target | V5: Home/LAN + Controller | V6: Docs and Rollback |
 |---|---|---|
-| ⏳ PENDING | ✅ COMPLETE | ✅ COMPLETE |
+| ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE |
 | • Target setup<br>• Deploy app<br>• Verify HTTPS and backup | • Home/LAN target<br>• Custom TLS<br>• Docker-free controller | • README install command<br>• Rollback runbook<br>• No-migration statement |
 | *Demo: clean VPS hosts an app* | *Demo: LAN app and controller-only list* | *Demo: a reader installs from the docs* |
 
@@ -135,7 +135,7 @@ From a clean controller install, prepare a fresh VPS, deploy an app, disconnect 
 
 ### Status
 
-PARTIAL — validated with released `v0.4.2` against a fresh Ubuntu 24.04 Linux VM over SSH: target setup, Docker, custom-TLS HTTPS, app deploy, controller disconnect, backup, remove, and restore all passed. A public cloud VPS with provider DNS/firewall/ACME remains pending.
+COMPLETE — validated with released `v0.9.0` against a fresh UpCloud Ubuntu 26.04 VPS at `try.oma.ikioma.ai` (`80.47.237.85`). `target setup` installed Docker 29.9.2; the controller deployed Campfire; HTTP redirects to HTTPS with a Let's Encrypt certificate; the app stayed reachable after the controller commands exited; a controller-side backup was removed/restored successfully; the target agent wrote a target-side backup to `/backups` and the controller listed/downloaded it; a held `deploy` lock rejected a concurrent backup with `another operation is in progress`. Agent service active, no new public listener beyond SSH/80/443.
 
 ## V5: Home/LAN and Controller-Only
 
