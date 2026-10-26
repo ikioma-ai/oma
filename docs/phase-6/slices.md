@@ -1,6 +1,6 @@
 # Phase 6 — Slices
 
-Status: Phase 6 shaped; implementation pending
+Status: Phase 6 in progress; V1 release signing complete, V2 next
 Shape: [`shaping.md`](shaping.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 Workstreams are ordered **supply chain → agent → object storage**.
@@ -9,7 +9,7 @@ Workstreams are ordered **supply chain → agent → object storage**.
 
 | V1: Release Signing | V2: Agent Install | V3: Agent Automation |
 |---|---|---|
-| ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ⏳ PENDING | ⏳ PENDING |
 | • RSA-SHA256 signature<br>• Installer/updater verify<br>• Key rotation metadata | • Signed binary upload<br>• Target service<br>• Agent role | • Agent-owned updates<br>• Agent-owned backups<br>• Status and logs |
 | *Demo: tampered checksum/signature is rejected* | *Demo: signed agent installed over SSH* | *Demo: controller offline; agent updates and backs up* |
 
@@ -28,7 +28,6 @@ Workstreams are ordered **supply chain → agent → object storage**.
 - The release signs `checksums.txt` and publishes signature plus key metadata.
 - The installer verifies the signature before verifying checksums and before installing.
 - The self-updater verifies the signature before replacing a binary.
-- Agent installation verifies the signed checksum manifest before uploading a binary.
 - Missing, malformed, unknown-key, or invalid signatures fail closed.
 - Existing checksum-only artifacts remain readable until signing is mandatory.
 - Release documentation covers key rotation and revocation.
@@ -47,7 +46,7 @@ Tamper with `checksums.txt` and a binary; confirm installer and self-updater abo
 
 ### Status
 
-PENDING
+COMPLETE — `v0.5.0` publishes `checksums.txt.sig` and `checksums.txt.keyid`; installer and self-updater verify before use. Agent artifact verification is part of V2. Key rotation/revocation remains a V6 runbook item.
 
 ## V2: Agent Install
 
@@ -55,6 +54,7 @@ PENDING
 
 ### Acceptance criteria
 
+- The controller verifies the signed checksum manifest before uploading the agent binary.
 - The controller installs the signed agent binary and target-local service over SSH.
 - No new public listener is opened.
 - Installation is idempotent and records the agent service.

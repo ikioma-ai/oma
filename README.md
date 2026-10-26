@@ -18,7 +18,7 @@ Install Oma with the hosted installer:
 curl -fsSL https://get.oma.ikioma.ai | sh
 ```
 
-The installer verifies the release checksum, installs Oma, installs the background service, and starts the first-run flow.
+The installer verifies the release signature and checksum, installs Oma, installs the background service, and starts the first-run flow.
 On Linux it can install Docker when needed; macOS requires Docker Desktop.
 
 For a controller that only manages remote targets, skip the local Docker requirement:

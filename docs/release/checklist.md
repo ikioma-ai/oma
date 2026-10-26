@@ -16,7 +16,7 @@ git tag -a vX.Y.Z -m "Oma vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-The release workflow runs CI, builds the four binaries, verifies `checksums.txt`, pushes the installer image to GHCR, and creates the GitHub release.
+The release workflow runs CI, builds the four binaries, verifies `checksums.txt`, signs it with `OMA_RELEASE_SIGNING_KEY`, publishes `checksums.txt.sig` and `checksums.txt.keyid`, pushes the installer image to GHCR, and creates the GitHub release.
 
 Verify:
 
@@ -43,6 +43,14 @@ export OMA_INSTALLER_URL=https://get.oma.ikioma.ai
 make installer-health
 curl -fsS https://get.oma.ikioma.ai/apps/campfire | grep INSTALL_REF
 ```
+
+## Signing key
+
+- Key ID: `oma-release-2026-10`.
+- Private key: GitHub Actions secret `OMA_RELEASE_SIGNING_KEY`; never commit it.
+- Public key: embedded in the installer template and self-updater.
+- Rotation: retain the previous public key until clients are upgraded, publish a new key ID, and only then switch the signing secret. A rotation must ship in a release signed by a key clients already trust.
+- Revocation: mark the key ID revoked and publish a replacement release; do not silently reuse a revoked key.
 
 ## Clean acceptance
 

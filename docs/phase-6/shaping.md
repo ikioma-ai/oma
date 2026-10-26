@@ -1,6 +1,6 @@
 # Phase 6 — Remote Autonomy, Supply Chain, Storage
 
-Status: three workstreams selected, breadboarded, ready to slice
+Status: V1 release signing implemented; V2 next
 Phase: 6
 Related: [`slices.md`](slices.md) · [`../release/shaping.md`](../release/shaping.md) · [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
