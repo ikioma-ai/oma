@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phases 1–3 complete; Phase 4 (automation and hardening) next
+Status: Phases 1–3 complete; Phase 4 shaped and sliced (implementation next)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -627,13 +627,25 @@ Exit criteria:
 
 ### Phase 4: Automation and hardening
 
-1. Decide backup ownership for remote targets.
-2. Add remote backup download or a remote runner path.
-3. Add checksum verification to the installer and self-updater.
-4. Add release signing if distributing binaries.
-5. Add catalog signature or trust policy if remote catalogs are supported.
-6. Add LAN TLS mode.
-7. Add installer support for controller-only installs.
+Status: shaped and sliced; implementation next.
+
+Shape: [`docs/hardening/shaping.md`](hardening/shaping.md) · Slices: [`docs/hardening/slices.md`](hardening/slices.md)
+
+Selected shape:
+
+1. Installer and self-updater verify published SHA-256 checksums; failure is fail-closed.
+2. Backup destination is explicit: controller-side by default, target-side through an optional Oma runner with controller download and restore.
+3. LAN TLS adds a `custom` certificate/key mode; `auto` and `off` remain.
+4. Installer supports `OMA_LOCAL_DOCKER=false` for controller-only installs.
+5. Release signing, catalog signatures, self-signed certificates, ACME DNS-01, and object storage are deferred.
+
+Exit criteria:
+
+- Corrupt installer and self-update downloads abort without damaging the existing install.
+- A target-side backup completes while the controller is offline and is downloadable later.
+- A downloaded target-side archive restores through the existing restore path.
+- A LAN app serves HTTPS with a trusted custom certificate and invalid material fails before mutation.
+- A Docker-free controller installs Oma, configures a remote target, and lists remote apps.
 
 ### Phase 5: Release
 
@@ -678,6 +690,12 @@ Exit criteria:
 | Remote | Remote host metrics | Correct data or explicit unavailability |
 | Safety | DNS verification failure | No data volume is removed |
 | Security | Corrupt installer checksum | Installation aborts |
+| Security | Corrupt self-update checksum | Update aborts; existing binary intact |
+| Security | Missing checksum entry | Install/update aborts |
+| Backup | Target-side backup while controller is offline | Archive completes on target |
+| Backup | Download target-side archive | Downloaded archive restores |
+| TLS | Custom certificate on LAN | Trusted HTTPS without browser warning |
+| Installer | Controller-only install without Docker | Remote target list works; local errors clearly |
 | Security | Malicious catalog path or image | Rejected |
 
 ---
