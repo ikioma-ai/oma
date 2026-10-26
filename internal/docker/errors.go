@@ -33,6 +33,12 @@ var (
 	}
 )
 
+// ClassifyConnectionError maps a Docker connection failure to the shared
+// permission-denied or daemon-not-running errors.
+func ClassifyConnectionError(err error) error {
+	return connectionError(err)
+}
+
 func ErrorMessage(err error) string {
 	if de, ok := errors.AsType[DescribedError](err); ok {
 		return de.Description()

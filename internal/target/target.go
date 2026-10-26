@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -120,11 +121,14 @@ func LoadFrom(path string) (*Config, error) {
 				target.Namespace = DefaultNamespace
 			}
 		} else {
-			if target.SSH == "" {
-				return nil, fmt.Errorf("target %q requires an SSH destination", name)
+			if !validSSHDestination(target.SSH) {
+				return nil, fmt.Errorf("target %q has an invalid SSH destination", name)
 			}
 			if target.DockerSocket == "" {
 				target.DockerSocket = DefaultDockerSocket
+			}
+			if !pathpkg.IsAbs(target.DockerSocket) {
+				return nil, fmt.Errorf("target %q Docker socket must be an absolute path", name)
 			}
 			if target.Namespace == "" {
 				target.Namespace = DefaultNamespace
@@ -191,11 +195,14 @@ func (c *Config) Add(target Target) error {
 	if !targetNamePattern.MatchString(target.Name) {
 		return fmt.Errorf("invalid target name %q", target.Name)
 	}
-	if strings.TrimSpace(target.SSH) == "" {
-		return fmt.Errorf("target %q requires an SSH destination", target.Name)
+	if !validSSHDestination(target.SSH) {
+		return fmt.Errorf("target %q requires a valid SSH destination", target.Name)
 	}
 	if target.DockerSocket == "" {
 		target.DockerSocket = DefaultDockerSocket
+	}
+	if !pathpkg.IsAbs(target.DockerSocket) {
+		return fmt.Errorf("target %q Docker socket must be an absolute path", target.Name)
 	}
 	if target.Namespace == "" {
 		target.Namespace = DefaultNamespace
@@ -284,7 +291,13 @@ func (t Target) Transport() (Transport, error) {
 	if t.Local {
 		return LocalTransport{}, nil
 	}
-	return nil, fmt.Errorf("target %q: SSH transport is not implemented yet", t.Name)
+	if !validSSHDestination(t.SSH) {
+		return nil, fmt.Errorf("target %q requires a valid SSH destination", t.Name)
+	}
+	if !pathpkg.IsAbs(t.DockerSocket) {
+		return nil, fmt.Errorf("target %q requires an absolute Docker socket path", t.Name)
+	}
+	return SSHTransport{Destination: t.SSH, DockerSocket: t.DockerSocket}, nil
 }
 
 type Transport interface {
@@ -302,6 +315,13 @@ func (LocalTransport) Connect(ctx context.Context) (*client.Client, io.Closer, e
 }
 
 // Helpers
+
+func validSSHDestination(destination string) bool {
+	if destination == "" || strings.HasPrefix(destination, "-") {
+		return false
+	}
+	return !strings.ContainsAny(destination, " \t\r\n")
+}
 
 func defaultConfig(path string) *Config {
 	return &Config{

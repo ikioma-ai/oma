@@ -143,6 +143,8 @@ Status: complete.
 
 ## V2: SSH Tunnel and Remote Operations
 
+Status: complete.
+
 **Goal:** A remote target behaves like the local target through the existing Docker API.
 
 **Affordances:** U2, U7, N3, N4, N11
@@ -236,5 +238,5 @@ Status: complete.
 
 |  |  |  |
 | :-- | :-- | :-- |
-| **V1: Target Config and Local Selection**<br>✅ COMPLETE<br><br>• Target config<br>• Resolver<br>• CLI target commands<br>• Local default<br><br>*Demo: `target list` and `--target local`* | **V2: SSH Tunnel and Remote Operations**<br>⏳ PENDING<br><br>• OpenSSH forward<br>• Docker client injection<br>• Remote CRUD<br>• Connection probe<br><br>*Demo: Deploy and manage a VPS app* | **V3: TUI Target Switching**<br>⏳ PENDING<br><br>• Active-target badge<br>• Switcher<br>• State rebuild<br>• Failed-switch handling<br><br>*Demo: Switch laptop to VPS* |
+| **V1: Target Config and Local Selection**<br>✅ COMPLETE<br><br>• Target config<br>• Resolver<br>• CLI target commands<br>• Local default<br><br>*Demo: `target list` and `--target local`* | **V2: SSH Tunnel and Remote Operations**<br>✅ COMPLETE<br><br>• OpenSSH forward<br>• Docker client injection<br>• Remote CRUD<br>• Connection probe<br><br>*Demo: Deploy and manage a VPS app* | **V3: TUI Target Switching**<br>⏳ PENDING<br><br>• Active-target badge<br>• Switcher<br>• State rebuild<br>• Failed-switch handling<br><br>*Demo: Switch laptop to VPS* |
 | **V4: Remote Observability and Safety**<br>⏳ PENDING<br><br>• Target metrics<br>• Unavailable fallback<br>• `--no-verify`<br>• Non-destructive failure<br><br>*Demo: Remote dashboard and safe failure* | **V5: Target Setup and Automation**<br>⏳ PENDING<br><br>• Explicit setup<br>• Provisioning check<br>• Background target<br>• Offline-controller notes<br><br>*Demo: Bootstrap a VPS and run backups* | **V6: Deferred Extensions**<br>⏳ OUT OF SCOPE<br><br>• Remote agent transport<br>• Target-local runner<br>• Fleet scheduling<br>• Docker TCP/TLS<br>• Remote-side backups<br><br>*Demo: Not part of this phase* |

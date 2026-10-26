@@ -1,11 +1,16 @@
 package command
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"text/tabwriter"
+	"time"
 
+	"github.com/moby/moby/client"
 	"github.com/spf13/cobra"
 
+	"github.com/ikioma-ai/oma/internal/docker"
 	"github.com/ikioma-ai/oma/internal/target"
 )
 
@@ -21,6 +26,7 @@ func newTargetCommand() *targetCommand {
 	}
 
 	t.cmd.AddCommand(newTargetAddCommand().cmd)
+	t.cmd.AddCommand(newTargetCheckCommand().cmd)
 	t.cmd.AddCommand(newTargetDefaultCommand().cmd)
 	t.cmd.AddCommand(newTargetListCommand().cmd)
 	t.cmd.AddCommand(newTargetRemoveCommand().cmd)
@@ -46,6 +52,21 @@ func newTargetAddCommand() *targetAddCommand {
 	t.cmd.Flags().StringVar(&t.ssh, "ssh", "", "SSH destination, such as user@host")
 	t.cmd.Flags().StringVar(&t.dockerSocket, "docker-socket", "", "remote Docker socket path")
 	t.cmd.Flags().StringVar(&t.namespace, "namespace", "", "namespace to use on the target")
+	return t
+}
+
+type targetCheckCommand struct {
+	cmd *cobra.Command
+}
+
+func newTargetCheckCommand() *targetCheckCommand {
+	t := &targetCheckCommand{}
+	t.cmd = &cobra.Command{
+		Use:   "check [name]",
+		Short: "Check target connectivity and Docker access",
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  t.run,
+	}
 	return t
 }
 
@@ -98,6 +119,62 @@ func newTargetDefaultCommand() *targetDefaultCommand {
 }
 
 // Private
+
+func (t *targetCheckCommand) run(cmd *cobra.Command, args []string) error {
+	config, err := target.Load()
+	if err != nil {
+		return err
+	}
+
+	name := targetFlag(cmd)
+	if len(args) > 0 {
+		name = args[0]
+	}
+	selected, err := config.Resolve(name, os.Getenv("OMA_TARGET"))
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	out := cmd.OutOrStdout()
+	if selected.Local {
+		fmt.Fprintln(out, "SSH: not required")
+	} else {
+		fmt.Fprintf(out, "SSH: %s\n", selected.SSH)
+	}
+
+	transport, err := selected.Transport()
+	if err != nil {
+		return err
+	}
+
+	dockerClient, closer, err := transport.Connect(ctx)
+	if err != nil {
+		if selected.Local {
+			fmt.Fprintf(out, "Docker: failed: %s\n", docker.ErrorMessage(err))
+		} else {
+			fmt.Fprintf(out, "SSH: failed: %s\n", err)
+		}
+		return err
+	}
+	defer closer.Close()
+
+	if !selected.Local {
+		fmt.Fprintln(out, "SSH: ok")
+	}
+
+	ping, err := dockerClient.Ping(ctx, client.PingOptions{})
+	if err != nil {
+		err = docker.ClassifyConnectionError(err)
+		fmt.Fprintf(out, "Docker: failed: %s\n", docker.ErrorMessage(err))
+		return err
+	}
+
+	fmt.Fprintf(out, "Docker: ok (API %s, OS %s)\n", ping.APIVersion, ping.OSType)
+	return nil
+}
 
 func (t *targetAddCommand) run(cmd *cobra.Command, args []string) error {
 	config, err := target.Load()

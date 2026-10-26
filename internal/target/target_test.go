@@ -94,6 +94,21 @@ func TestAddRejectsInvalidNamespace(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestAddRejectsInvalidSSHDestination(t *testing.T) {
+	config := defaultConfig("")
+
+	for _, destination := range []string{"", "-oProxyCommand=bad", "root@example.com extra"} {
+		assert.Error(t, config.Add(Target{Name: "vps", SSH: destination}), destination)
+	}
+}
+
+func TestAddRejectsRelativeDockerSocket(t *testing.T) {
+	config := defaultConfig("")
+
+	err := config.Add(Target{Name: "vps", SSH: "root@example.com", DockerSocket: "docker.sock"})
+	require.Error(t, err)
+}
+
 func TestRemoveDefaultRequiresNewDefault(t *testing.T) {
 	config := defaultConfig("")
 	require.NoError(t, config.Add(Target{Name: "vps", SSH: "root@example.com"}))
@@ -125,6 +140,8 @@ func TestLoadRejectsInvalidConfig(t *testing.T) {
 	}{
 		{name: "default missing", content: "default: missing\n"},
 		{name: "missing ssh", content: "targets:\n  vps:\n    namespace: oma\n"},
+		{name: "invalid ssh", content: "targets:\n  vps:\n    ssh: 'root@example.com extra'\n"},
+		{name: "relative socket", content: "targets:\n  vps:\n    ssh: root@example.com\n    dockerSocket: docker.sock\n"},
 		{name: "invalid target name", content: "targets:\n  Bad_Name:\n    ssh: root@example.com\n"},
 		{name: "local with ssh", content: "targets:\n  local:\n    ssh: root@example.com\n"},
 		{name: "invalid namespace", content: "targets:\n  vps:\n    ssh: root@example.com\n    namespace: Bad Namespace\n"},
@@ -161,8 +178,12 @@ func TestConfigPathUsesXDG(t *testing.T) {
 	assert.Equal(t, filepath.Join(dir, "oma", "config.yaml"), path)
 }
 
-func TestSSHTransportNotImplemented(t *testing.T) {
-	_, err := (Target{Name: "vps", SSH: "root@example.com"}).Transport()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not implemented")
+func TestSSHTransportSelected(t *testing.T) {
+	transport, err := (Target{
+		Name:         "vps",
+		SSH:          "root@example.com",
+		DockerSocket: "/var/run/docker.sock",
+	}).Transport()
+	require.NoError(t, err)
+	assert.IsType(t, SSHTransport{}, transport)
 }

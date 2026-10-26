@@ -115,3 +115,23 @@ func setTargetConfigHome(t *testing.T) string {
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	return dir
 }
+
+func TestTargetCheckUnknownTarget(t *testing.T) {
+	setTargetConfigHome(t)
+	t.Setenv("OMA_TARGET", "missing")
+
+	c := newTargetCheckCommand()
+	var out bytes.Buffer
+	c.cmd.SetOut(&out)
+
+	err := c.run(c.cmd, nil)
+	require.ErrorIs(t, err, target.ErrUnknownTarget)
+}
+
+func TestRootRegistersTargetCheckCommand(t *testing.T) {
+	root := NewRootCommand()
+
+	cmd, _, err := root.cmd.Find([]string{"target", "check"})
+	require.NoError(t, err)
+	assert.Equal(t, "check", cmd.Name())
+}
