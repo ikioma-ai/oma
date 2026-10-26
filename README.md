@@ -47,6 +47,64 @@ Release and rollback details are in [`docs/release/checklist.md`](docs/release/c
 
 Note that if you need to use `sudo` when running Docker commands (for example, if your user is not in the `docker` group) then you'll also need to use `sudo` whenever you run `oma`.
 
+## Remote targets and object backups
+
+Oma can run an app on a remote Docker target while the controller manages it over SSH.
+The target-local agent runs updates and backups on the target, so they continue when the controller is offline.
+
+```sh
+# Create and prepare a target over SSH
+oma target add vps --ssh user@vps.example.com
+oma target setup vps
+
+# Install or update the signed target-local agent
+oma target agent install vps
+oma target agent status vps
+
+# Return automation to the controller
+oma target agent disable vps
+```
+
+The agent does not open a new public port. `oma target agent install` records the agent version and makes the target agent-owned; `oma target agent disable` stops the service and returns ownership to the controller.
+
+### S3-compatible object backups
+
+Object backups keep tar.gz archives outside the target and are written by the target agent, so they keep running while the controller is offline.
+Configure the bucket once on the target; the secret is written to `/etc/oma/object-storage.json` with mode `0600` and is never stored in labels or logs.
+
+```sh
+printf '%s\n' "$OMA_S3_SECRET_KEY" | oma target storage configure vps \
+  --endpoint https://s3.example.com \
+  --region us-east-1 \
+  --bucket oma-backups \
+  --prefix vps \
+  --access-key "$OMA_S3_ACCESS_KEY" \
+  --secret-key-stdin
+
+oma target storage status vps
+```
+
+The bucket must already exist. Oma requests server-side encryption when uploading and requires an S3-compatible endpoint with SigV4 support; provider-specific IAM policy and lifecycle setup remain the operator's responsibility.
+
+Set an app's backup destination to `object` from the CLI when deploying or updating it:
+
+```sh
+oma --target vps deploy ghcr.io/basecamp/once-campfire \
+  --host app.example.com --backup-destination object --auto-backup
+```
+
+List, download, and restore object archives through the target agent:
+
+```sh
+oma target backups list vps
+oma target backups download vps <archive> ./backup.tar.gz
+oma target backups restore vps <archive>
+```
+
+`target backups restore` downloads through the target agent and then uses the same restore path as `oma restore`; it requires the original hostname to be free, so remove the existing app first.
+
+To roll object storage back, set the app's backup destination back to `target` and update its backup path, then remove or leave `/etc/oma/object-storage.json` on the target. Existing archives in the bucket are not deleted by Oma. To remove an agent, run `oma target agent disable vps` and then remove `/usr/local/bin/oma` and the `oma-background` service if the target will no longer be managed.
+
 ## Using Oma to install and configure applications
 
 On first run, Oma will prompt you to choose an application to install.

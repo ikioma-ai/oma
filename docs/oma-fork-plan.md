@@ -1,6 +1,6 @@
 # Oma Fork Plan
 
-Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 in progress (V1–V3 complete, V4 next)
+Status: Phase 4 complete; Phase 5 pending macOS/public VPS; Phase 6 complete (V1–V6)
 Upstream: `basecamp/once` at `v0.3.4` (`864ec7c`, 2026-10-07)
 Purpose: record what ONCE does today, what Oma must add, and how to fork and maintain it without a rewrite.
 
@@ -664,7 +664,7 @@ Selected shape: GHCR release artifacts plus a Kamal-hosted installer. The instal
 
 ### Phase 6: Remote autonomy, supply chain, storage
 
-Status: in progress; V1 release signing, V2 agent install, and V3 agent automation complete, V4 next.
+Status: complete; V1 release signing, V2 agent install, V3 agent automation, V4 object backups, V5 object restore, and V6 rollout are delivered.
 
 Shape: [`docs/phase-6/shaping.md`](phase-6/shaping.md) · Slices: [`docs/phase-6/slices.md`](phase-6/slices.md)
 
@@ -717,6 +717,9 @@ The existing controller-driven target model remains the default. Fleet schedulin
 | TLS | Custom certificate on LAN | Trusted HTTPS without browser warning |
 | Installer | Controller-only install without Docker | Remote target list works; local errors clearly |
 | Security | Malicious catalog path or image | Rejected |
+| Security | Object archive traversal name | Rejected before download |
+| Backup | Agent object backup while controller is offline | Archive appears in the bucket |
+| Backup | Object list/download/restore through target | Archive downloads and restores; partial files are removed |
 
 ---
 

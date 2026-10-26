@@ -1,6 +1,6 @@
 # Phase 6 — Slices
 
-Status: Phase 6 in progress; V1–V3 complete, V4 next
+Status: Phase 6 complete; V1–V6 complete
 Shape: [`shaping.md`](shaping.md) · Roadmap: [`../oma-fork-plan.md`](../oma-fork-plan.md)
 
 Workstreams are ordered **supply chain → agent → object storage**.
@@ -15,7 +15,7 @@ Workstreams are ordered **supply chain → agent → object storage**.
 
 | V4: Object Backups | V5: Object Restore | V6: Rollout and Compatibility |
 |---|---|---|
-| ⏳ PENDING | ⏳ PENDING | ⏳ PENDING |
+| ✅ COMPLETE | ✅ COMPLETE | ✅ COMPLETE |
 | • Bucket/prefix config<br>• 0600 credentials<br>• Upload, encryption, retention | • List remote archives<br>• Download/restore<br>• Partial-transfer cleanup | • Migration from checksum-only<br>• Key rotation runbook<br>• Existing defaults preserved |
 | *Demo: backup while controller is offline* | *Demo: restore from object storage* | *Demo: existing target keeps working* |
 
@@ -134,7 +134,7 @@ Stop the controller, trigger an agent backup, and verify the object exists in th
 
 ### Status
 
-PENDING
+COMPLETE — object backups are configured on the target, upload existing tar.gz archives with SSE from the agent, and remove expired archives by prefix. Verified in `v0.8.0`–`v0.8.1` with an agent-owned target and an S3-compatible mock; upload failures leave no partial archive and report the object key.
 
 ## V5: Object Restore
 
@@ -163,7 +163,7 @@ List an object archive, download it, and restore the app from the downloaded fil
 
 ### Status
 
-PENDING
+COMPLETE — `v0.9.0` lists and downloads archives through the target agent, rejects traversal names, removes partial downloads, and restores through the existing `Namespace.Restore` path. Verified with a real object archive from an agent-owned target.
 
 ## V6: Rollout and Compatibility
 
@@ -191,4 +191,4 @@ Upgrade an existing installation, switch one target to agent ownership, then rol
 
 ### Status
 
-PENDING
+COMPLETE — defaults remain controller/target-side backups, the rollout/runbook covers signing keys, agent removal, object storage, and rollback, and support boundaries are documented in `rollout.md`.
