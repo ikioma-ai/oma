@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ikioma-ai/oma/internal/docker"
 	"github.com/ikioma-ai/oma/internal/service"
 	"github.com/ikioma-ai/oma/internal/target"
 )
@@ -64,8 +63,4 @@ func (b *backgroundUninstallCommand) run(cmd *cobra.Command, args []string) erro
 
 	fmt.Printf("Uninstalled %s\n", svc.ServiceName(serviceName))
 	return nil
-}
-
-func localBackgroundServiceName(namespace string) string {
-	return backgroundServiceName(namespace, docker.LocalTargetName)
 }

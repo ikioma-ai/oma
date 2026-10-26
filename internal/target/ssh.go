@@ -22,11 +22,11 @@ const (
 )
 
 var (
-	ErrSSHNotFound    = errors.New("SSH client not found")
-	ErrSSHHostKey     = errors.New("SSH host key verification failed")
-	ErrSSHAuth        = errors.New("SSH authentication failed")
-	ErrSSHUnreachable = errors.New("SSH target is unreachable")
-	ErrSSHForward     = errors.New("Docker socket forwarding failed")
+	ErrSSHNotFound    = errors.New("ssh client not found")
+	ErrSSHHostKey     = errors.New("ssh host key verification failed")
+	ErrSSHAuth        = errors.New("ssh authentication failed")
+	ErrSSHUnreachable = errors.New("ssh target is unreachable")
+	ErrSSHForward     = errors.New("docker socket forwarding failed")
 )
 
 type SSHTransport struct {

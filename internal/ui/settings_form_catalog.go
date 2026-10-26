@@ -48,17 +48,14 @@ func NewSettingsFormCatalog(app *docker.Application) SettingsFormCatalog {
 	}
 
 	m := SettingsFormCatalog{
-		settingsFormBase: settingsFormBase{
-			title: "Catalog",
-			form:  NewForm(submitLabel),
-		},
-		app:      app,
-		hasEntry: hasEntry,
-		changes:  changes,
+		title:      "Catalog",
+		form:       NewForm(submitLabel),
+		statusLine: func() string { return status },
+		viewFn:     func(Form) string { return renderCatalogChanges(changes) },
+		app:        app,
+		hasEntry:   hasEntry,
+		changes:    changes,
 	}
-
-	m.statusLine = func() string { return status }
-	m.viewFn = func(Form) string { return renderCatalogChanges(changes) }
 
 	m.form.OnSubmit(func(f *Form) tea.Cmd {
 		if !hasEntry || len(changes) == 0 {

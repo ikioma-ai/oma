@@ -33,23 +33,21 @@ func TestDiffOnlyIncludesAllowedFields(t *testing.T) {
 	}
 
 	entry := catalog.Entry{
-		Manifest: catalog.Manifest{
-			ID: "app",
-			Web: catalog.Web{
-				Port:          3000,
-				HealthPath:    "/healthz",
-				HealthPort:    3000,
-				HealthTimeout: "10s",
-				TLS:           "off",
-				Verify:        &nextVerify,
-			},
-			Resources: catalog.Resources{CPUs: 2, MemoryMB: 512},
-			Storage: []catalog.Storage{
-				{Name: "data", Path: "/storage", Primary: true, Backup: true},
-				{Name: "data", Path: "/data"},
-			},
-			Env: []catalog.EnvVar{{Name: "SECRET", Value: "replace"}},
+		ID: "app",
+		Web: catalog.Web{
+			Port:          3000,
+			HealthPath:    "/healthz",
+			HealthPort:    3000,
+			HealthTimeout: "10s",
+			TLS:           "off",
+			Verify:        &nextVerify,
 		},
+		Resources: catalog.Resources{CPUs: 2, MemoryMB: 512},
+		Storage: []catalog.Storage{
+			{Name: "data", Path: "/storage", Primary: true, Backup: true},
+			{Name: "data", Path: "/data"},
+		},
+		Env:    []catalog.EnvVar{{Name: "SECRET", Value: "replace"}},
 		Source: catalog.SourceUser,
 	}
 
@@ -91,22 +89,20 @@ func TestBuildPreservesSecretsAndEnvironment(t *testing.T) {
 	}
 
 	entry := catalog.Entry{
-		Manifest: catalog.Manifest{
-			ID:    "app",
-			Image: "example.com/app:v1",
-			Web: catalog.Web{
-				Port:          3000,
-				HealthPath:    "/healthz",
-				HealthPort:    3001,
-				HealthTimeout: "10s",
-				TLS:           "off",
-				Verify:        &nextVerify,
-			},
-			Resources: catalog.Resources{CPUs: 2, MemoryMB: 512},
-			Storage: []catalog.Storage{
-				{Name: "data", Path: "/storage", Primary: true},
-				{Name: "data", Path: "/data"},
-			},
+		ID:    "app",
+		Image: "example.com/app:v1",
+		Web: catalog.Web{
+			Port:          3000,
+			HealthPath:    "/healthz",
+			HealthPort:    3001,
+			HealthTimeout: "10s",
+			TLS:           "off",
+			Verify:        &nextVerify,
+		},
+		Resources: catalog.Resources{CPUs: 2, MemoryMB: 512},
+		Storage: []catalog.Storage{
+			{Name: "data", Path: "/storage", Primary: true},
+			{Name: "data", Path: "/data"},
 		},
 		Source: catalog.SourceUser,
 	}
@@ -142,7 +138,7 @@ func TestBuildDoesNotRemoveEnvironment(t *testing.T) {
 		EnvVars:   map[string]string{"SECRET": "keep"},
 		SecretEnv: []string{"SECRET"},
 	}
-	entry := catalog.Entry{Manifest: catalog.Manifest{ID: "app"}}
+	entry := catalog.Entry{ID: "app"}
 
 	next := Build(current, entry)
 
@@ -151,7 +147,7 @@ func TestBuildDoesNotRemoveEnvironment(t *testing.T) {
 }
 
 func TestImageChanged(t *testing.T) {
-	entry := catalog.Entry{Manifest: catalog.Manifest{Image: "example.com/app:v2"}}
+	entry := catalog.Entry{Image: "example.com/app:v2"}
 
 	assert.True(t, ImageChanged(docker.ApplicationSettings{Image: "example.com/app:v1"}, entry))
 	assert.False(t, ImageChanged(docker.ApplicationSettings{Image: "example.com/app:v2"}, entry))

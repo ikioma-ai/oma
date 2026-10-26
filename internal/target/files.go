@@ -65,11 +65,11 @@ func (t SSHTransport) ListFiles(ctx context.Context, dir string) ([]string, erro
 	}
 
 	var names []string
-	for _, entry := range bytes.Split(output, []byte{0}) {
-		if len(entry) == 0 {
+	for entry := range strings.SplitSeq(string(output), "\x00") {
+		if entry == "" {
 			continue
 		}
-		names = append(names, path.Base(string(entry)))
+		names = append(names, path.Base(entry))
 	}
 	sort.Strings(names)
 	return names, nil

@@ -13,20 +13,18 @@ import (
 func TestSettingsFromCatalogEntry(t *testing.T) {
 	verify := false
 	entry := catalog.Entry{
-		Manifest: catalog.Manifest{
-			ID: "myapp",
-			Web: catalog.Web{
-				Port:          3000,
-				HealthPath:    "/healthz",
-				HealthPort:    3001,
-				HealthTimeout: "10s",
-				TLS:           "off",
-				Verify:        &verify,
-			},
-			Storage: []catalog.Storage{
-				{Name: "data", Path: "/data", Primary: true, Backup: true},
-				{Name: "data", Path: "/storage"},
-			},
+		ID: "myapp",
+		Web: catalog.Web{
+			Port:          3000,
+			HealthPath:    "/healthz",
+			HealthPort:    3001,
+			HealthTimeout: "10s",
+			TLS:           "off",
+			Verify:        &verify,
+		},
+		Storage: []catalog.Storage{
+			{Name: "data", Path: "/data", Primary: true, Backup: true},
+			{Name: "data", Path: "/storage"},
 		},
 		Source: catalog.SourceUser,
 	}
@@ -71,15 +69,13 @@ func TestApplicationSettingsUsesSelectedCatalogEntry(t *testing.T) {
 
 func TestSettingsFromCatalogEntryEnvironment(t *testing.T) {
 	entry := catalog.Entry{
-		Manifest: catalog.Manifest{
-			ID: "envapp",
-			Env: []catalog.EnvVar{
-				{Name: "DATABASE_URL", Required: true, Secret: true},
-				{Name: "LOG_LEVEL", Default: "info"},
-				{Name: "APP_ENV", Value: "production"},
-				{Name: "SECRET_TOKEN", Generate: "hex32", Secret: true},
-				{Name: "BASE_URL", From: "base_url"},
-			},
+		ID: "envapp",
+		Env: []catalog.EnvVar{
+			{Name: "DATABASE_URL", Required: true, Secret: true},
+			{Name: "LOG_LEVEL", Default: "info"},
+			{Name: "APP_ENV", Value: "production"},
+			{Name: "SECRET_TOKEN", Generate: "hex32", Secret: true},
+			{Name: "BASE_URL", From: "base_url"},
 		},
 		Source: catalog.SourceUser,
 	}
@@ -108,10 +104,8 @@ func TestSettingsFromCatalogEntryEnvironment(t *testing.T) {
 
 func TestSettingsFromCatalogEntryRequiresEnv(t *testing.T) {
 	entry := catalog.Entry{
-		Manifest: catalog.Manifest{
-			ID:  "envapp",
-			Env: []catalog.EnvVar{{Name: "DATABASE_URL", Required: true}},
-		},
+		ID:  "envapp",
+		Env: []catalog.EnvVar{{Name: "DATABASE_URL", Required: true}},
 	}
 
 	_, err := settingsFromCatalogEntry(docker.ApplicationSettings{Name: "envapp"}, entry, nil)

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"maps"
 	"sort"
 
 	tea "charm.land/bubbletea/v2"
@@ -286,9 +287,7 @@ func applyCatalogEnv(settings *docker.ApplicationSettings, env []catalog.EnvVar,
 	}
 
 	vars := make(map[string]string, len(settings.EnvVars)+len(env))
-	for name, value := range settings.EnvVars {
-		vars[name] = value
-	}
+	maps.Copy(vars, settings.EnvVars)
 
 	var secrets []string
 

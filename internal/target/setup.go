@@ -117,7 +117,7 @@ func Setup(ctx context.Context, target Target, emit func(string)) (SetupReport, 
 				return report, setupError("checking Docker after installation", stderr, err)
 			}
 			if root {
-				return report, fmt.Errorf("Docker is installed but the Docker socket is not accessible")
+				return report, fmt.Errorf("docker is installed but the Docker socket is not accessible")
 			}
 
 			emit("Docker group: updating")

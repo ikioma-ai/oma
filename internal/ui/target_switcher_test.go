@@ -46,7 +46,7 @@ func TestTargetSwitcherSelectsTarget(t *testing.T) {
 	switcher := comp.(TargetSwitcher)
 	require.NotNil(t, cmd)
 
-	comp, cmd = switcher.Update(cmd().(MenuSelectMsg))
+	_, cmd = switcher.Update(cmd().(MenuSelectMsg))
 	require.NotNil(t, cmd)
 
 	msg := cmd()

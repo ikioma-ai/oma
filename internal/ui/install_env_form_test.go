@@ -48,7 +48,7 @@ func TestInstallEnvFormSubmitsValues(t *testing.T) {
 	form, _ = form.Update(keyPressMsg("e"))
 	form, _ = form.Update(keyPressMsg("c"))
 	form, _ = form.Update(keyPressMsg("tab")) // submit
-	form, cmd := form.Update(keyPressMsg("enter"))
+	_, cmd := form.Update(keyPressMsg("enter"))
 	require.NotNil(t, cmd)
 
 	msg := cmd()
